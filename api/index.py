@@ -3,14 +3,18 @@ import json
 import os
 from math import radians, cos, sin, asin, sqrt
 
+# Get the project root directory
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 app = Flask(__name__,
-            template_folder='../templates',
-            static_folder='../static')
+            template_folder=os.path.join(PROJECT_ROOT, 'templates'),
+            static_folder=os.path.join(PROJECT_ROOT, 'static'),
+            static_url_path='/static')
 
 def load_buildings():
-    data_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'buildings.json')
+    data_path = os.path.join(PROJECT_ROOT, 'data', 'buildings.json')
     try:
-        with open(data_path, 'r') as f:
+        with open(data_path, 'r', encoding='utf-8') as f:
             return json.load(f)
     except FileNotFoundError:
         return {"buildings": []}
@@ -72,5 +76,6 @@ def nearby_buildings():
     except Exception:
         return jsonify({"error": "Invalid parameters"}), 400
 
+# Vercel requires exporting the app
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
