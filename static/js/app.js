@@ -29,6 +29,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initMap();
     await loadBuildings();
     setupEvents();
+    setupDrawerDrag();
     getUserLocation(null, true);
 });
 
@@ -170,13 +171,22 @@ function openDrawer(b) {
     document.getElementById('drawerSummary').style.display  = 'none';
     document.getElementById('drawerLoading').style.display  = 'flex';
     document.getElementById('drawerError').style.display    = 'none';
-    document.getElementById('drawerSteps').innerHTML         = '';
+    document.getElementById('drawerSteps').innerHTML        = '';
     document.getElementById('drawerFooter').style.display   = 'none';
+    document.getElementById('drawerHint').style.display     = 'block';
+
+    // Always collapse first
+    document.getElementById('dirDrawer').classList.remove('expanded');
     document.getElementById('dirDrawer').classList.add('active');
+
+    // Resize map after drawer opens so it recalculates bounds correctly
+    setTimeout(() => map.invalidateSize(), 400);
 }
 
 function closeDrawer() {
-    document.getElementById('dirDrawer').classList.remove('active');
+    const drawer = document.getElementById('dirDrawer');
+    drawer.classList.remove('active');
+    drawer.classList.remove('expanded');
     clearRoute();
 }
 
@@ -280,15 +290,18 @@ async function drawRoute(from, to, building) {
         
         routeLayer = { line, dash, animation: animateDash };
         
-        // ✨ UPGRADED: Smooth auto-zoom with perfect padding (wait for pin to drop first)
+        // ✨ UPGRADED: Smooth auto-zoom — padding accounts for compact 36vh drawer
         setTimeout(() => {
+            // Calculate bottom padding in pixels (~36vh + nav bar)
+            const drawerPx = Math.round(window.innerHeight * 0.36) + 68 + 20;
             map.fitBounds(line.getBounds(), { 
-                padding: [80, 80],
-                maxZoom: 17,
+                paddingTopLeft:     [60, 100],
+                paddingBottomRight: [60, drawerPx],
+                maxZoom: 18,
                 animate: true,
-                duration: 1.2
+                duration: 1.0
             });
-        }, 300);
+        }, 350);
 
         // Summary
         const dist = route.distance >= 1000 ? (route.distance/1000).toFixed(1)+' km' : Math.round(route.distance)+'m';
@@ -300,6 +313,7 @@ async function drawRoute(from, to, building) {
         document.getElementById('drawerSummary').style.display = 'flex';
         document.getElementById('drawerLoading').style.display = 'none';
         document.getElementById('drawerFooter').style.display  = 'block';
+        document.getElementById('drawerHint').style.display    = 'block';
 
         buildDrawerSteps(legs.steps, building);
 
@@ -404,56 +418,58 @@ async function startDirections() {
         getUserLocation(startDirections);
         return;
     }
-    document.getElementById('dirResult').style.display = 'flex';
-    document.getElementById('dirResult').style.flexDirection = 'column';
-    document.getElementById('navStepsList').innerHTML = '<div style="padding:16px;text-align:center;color:#94A3B8;">⏳ Calculating route...</div>';
-    document.getElementById('navDist').textContent = '...';
-    document.getElementById('navTime').textContent = '...';
-    document.getElementById('navSteps').textContent = '...';
-
-    const b = selectedDest;
-    const url = `${OSRM}${userLocation.longitude},${userLocation.latitude};${b.coordinates.longitude},${b.coordinates.latitude}?overview=full&geometries=geojson&steps=true`;
-    try {
-        const res  = await fetch(url);
-        const data = await res.json();
-        if (data.code !== 'Ok' || !data.routes?.length) { toast('Could not find route', 'err'); return; }
-        const route = data.routes[0];
-        const legs  = route.legs[0];
-        const dist  = route.distance >= 1000 ? (route.distance/1000).toFixed(1)+' km' : Math.round(route.distance)+'m';
-        const mins  = Math.ceil(route.duration / 60);
-        const time  = mins < 60 ? mins+' min' : Math.floor(mins/60)+'h '+(mins%60)+'m';
-        document.getElementById('navDist').textContent  = dist;
-        document.getElementById('navTime').textContent  = time;
-        document.getElementById('navSteps').textContent = legs.steps.length;
-        document.getElementById('navStepsList').innerHTML = legs.steps.map((s, i) => {
-            const type  = s.maneuver?.type || '';
-            const mod   = s.maneuver?.modifier || '';
-            const icon  = stepIcon(type, mod);
-            const d     = s.distance > 0 ? (s.distance >= 1000 ? (s.distance/1000).toFixed(1)+' km' : Math.round(s.distance)+'m') : '';
-            const start = type === 'depart';
-            const end   = type === 'arrive';
-            let text = s.name ? (type==='turn'?'Turn '+mod:capitalize(type))+' on <b>'+s.name+'</b>' : capitalize(type||'Continue');
-            if (start) text = '🟢 Start from your location';
-            if (end)   text = '📍 Arrived at <b>'+b.name+'</b>';
-            return `<div class="nav-step ${start?'st-start':''} ${end?'st-end':''}">
-                <div class="nav-step-num">${start?'▶':end?'🏁':i}</div>
-                <div class="nav-step-icon">${icon}</div>
-                <div style="flex:1;">
-                    <div class="nav-step-text">${text}</div>
-                    ${d ? `<div class="nav-step-dist">${d}</div>` : ''}
-                </div></div>`;
-        }).join('');
-
-        // Store route for "show on map" button
-        document._lastRoute = { buildings: b, legs };
-    } catch(e) { toast('Routing error', 'err'); }
+    // ✨ Google Maps style: switch to map page and open route drawer immediately
+    goPage('map', document.getElementById('navMap'));
+    setTimeout(() => launchNavFromMap(selectedDest.id), 250);
 }
 
-document.getElementById('showOnMapBtn').addEventListener('click', () => {
-    if (!selectedDest) return;
-    goPage('map', document.getElementById('navMap'));
-    setTimeout(() => launchNavFromMap(selectedDest.id), 300);
-});
+// ============================================================
+// DRAWER DRAG-TO-EXPAND (Google Maps style)
+// ============================================================
+function setupDrawerDrag() {
+    const drawer = document.getElementById('dirDrawer');
+    const handle = document.getElementById('drawerHandle');
+    const hint   = document.getElementById('drawerHint');
+    if (!handle) return;
+
+    let startY = 0, startH = 0, dragging = false;
+
+    // Tap/click on handle toggles expanded
+    handle.addEventListener('click', () => {
+        const isExpanded = drawer.classList.contains('expanded');
+        drawer.classList.toggle('expanded', !isExpanded);
+        if (hint) hint.style.display = isExpanded ? 'block' : 'none';
+        setTimeout(() => {
+            map.invalidateSize();
+            // Re-fit bounds after expansion change
+            if (routeLayer) {
+                const drawerPx = isExpanded
+                    ? Math.round(window.innerHeight * 0.36) + 68 + 20
+                    : Math.round(window.innerHeight * 0.68) + 68 + 20;
+                map.fitBounds(routeLayer.line.getBounds(), {
+                    paddingTopLeft: [60, 100],
+                    paddingBottomRight: [60, drawerPx],
+                    maxZoom: 18, animate: true, duration: 0.5
+                });
+            }
+        }, 350);
+    });
+
+    // Touch drag support
+    handle.addEventListener('touchstart', e => {
+        startY = e.touches[0].clientY;
+        dragging = true;
+    }, { passive: true });
+
+    handle.addEventListener('touchmove', e => {
+        if (!dragging) return;
+        const dy = startY - e.touches[0].clientY; // positive = dragged up
+        if (dy > 40)       { drawer.classList.add('expanded');    if (hint) hint.style.display='none';  dragging=false; }
+        else if (dy < -40) { drawer.classList.remove('expanded'); if (hint) hint.style.display='block'; dragging=false; }
+    }, { passive: true });
+
+    handle.addEventListener('touchend', () => { dragging = false; });
+}
 
 // ============================================================
 // DIRECTORY PAGE
@@ -512,11 +528,20 @@ function renderAllLocList(list) {
 // USER LOCATION
 // ============================================================
 function getUserLocation(cb, silent) {
-    if (!navigator.geolocation) { toast('Geolocation not supported', 'err'); return; }
+
+    if (!navigator.geolocation) {
+        toast('Geolocation not supported', 'err');
+        return;
+    }
+
     navigator.geolocation.getCurrentPosition(pos => {
-        userLocation = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
-        
-        // ✨ UPGRADED: Much larger, more visible user marker with double pulse
+
+        userLocation = {
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude
+        };
+
+        // USER LOCATION ICON
         const pIcon = L.divIcon({
             html: `
                 <div class="user-location-marker">
@@ -524,75 +549,99 @@ function getUserLocation(cb, silent) {
                     <div class="user-pulse pulse-2"></div>
                     <div class="user-dot"></div>
                 </div>
-                <style>
-                    .user-location-marker {
-                        width: 50px;
-                        height: 50px;
-                        position: relative;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                    }
-                    .user-pulse {
-                        position: absolute;
-                        width: 100%;
-                        height: 100%;
-                        border-radius: 50%;
-                        background: rgba(0, 217, 255, 0.4);
-                        animation: userPulse 2s ease-out infinite;
-                    }
-                    .pulse-2 {
-                        animation-delay: 1s;
-                    }
-                    .user-dot {
-                        width: 20px;
-                        height: 20px;
-                        border-radius: 50%;
-                        background: #00D9FF;
-                        border: 4px solid white;
-                        box-shadow: 0 0 0 2px rgba(0, 217, 255, 0.3),
-                                    0 4px 12px rgba(0, 0, 0, 0.4);
-                        z-index: 10;
-                        position: relative;
-                    }
-                    @keyframes userPulse {
-                        0% {
-                            transform: scale(0.3);
-                            opacity: 1;
-                        }
-                        70% {
-                            transform: scale(1.2);
-                            opacity: 0;
-                        }
-                        100% {
-                            transform: scale(1.5);
-                            opacity: 0;
-                        }
-                    }
-                </style>`,
-            className:'', 
-            iconSize: [50, 50], 
-            iconAnchor: [25, 25],
+            `,
+            className: '',
+            iconSize: [50,50],
+            iconAnchor: [25,25]
         });
-        
+
         if (userMarker) {
-            userMarker.setLatLng([userLocation.latitude, userLocation.longitude]);
+
+            userMarker.setLatLng([
+                userLocation.latitude,
+                userLocation.longitude
+            ]);
+
         } else {
-            userMarker = L.marker([userLocation.latitude, userLocation.longitude], { 
-                icon: pIcon, 
-                zIndexOffset: 1000 
+
+            userMarker = L.marker([
+                userLocation.latitude,
+                userLocation.longitude
+            ], {
+                icon: pIcon,
+                zIndexOffset: 1000
             })
-            .bindPopup('<div style="font-size:15px;font-weight:600;color:#0B0F1A;padding:4px;">📍 You are here!</div>')
+            .bindPopup('📍 You are here')
             .addTo(map);
+
         }
 
+        // CENTER MAP FIRST TIME
+        map.setView([
+            userLocation.latitude,
+            userLocation.longitude
+        ], 17);
+
         document.getElementById('locStatus').textContent = '✅ Found';
-        if (!silent) toast('📍 Location found!', 'ok');
-        if (cb) cb();
+
+        if (!silent)
+            toast('📍 Location found!', 'ok');
+
+        if (cb)
+            cb();
+
+
+        /* ---------------------------------------
+           LIVE LOCATION TRACKING
+           --------------------------------------- */
+
+        navigator.geolocation.watchPosition(pos => {
+
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+
+            userLocation = {
+                latitude: lat,
+                longitude: lng
+            };
+
+            if (userMarker) {
+
+                userMarker.setLatLng([lat, lng]);
+
+            }
+
+            // AUTO FOLLOW USER WHILE WALKING
+            if (routeLayer) {
+
+                map.panTo([lat, lng], {
+                    animate: true,
+                    duration: 0.5
+                });
+
+            }
+
+        }, err => {
+            console.log('Live tracking error', err);
+        }, {
+            enableHighAccuracy: true,
+            maximumAge: 0,
+            timeout: 10000
+        });
+
+
     }, () => {
+
         document.getElementById('locStatus').textContent = '❌ Denied';
-        if (!silent) toast('Location access denied', 'err');
-    }, { enableHighAccuracy: true, timeout: 10000 });
+
+        if (!silent)
+            toast('Location access denied', 'err');
+
+    }, {
+        enableHighAccuracy: true,
+        timeout: 10000
+    });
+
 }
 
 // ============================================================
@@ -669,7 +718,6 @@ function toast(msg, type) {
     setTimeout(() => { t.style.opacity='0'; t.style.transition='opacity .3s'; setTimeout(() => t.remove(), 300); }, 3000);
 }
 
-// Global access
 window.openSheet       = openSheet;
 window.closeSheet      = closeSheet;
 window.launchNavFromMap = launchNavFromMap;

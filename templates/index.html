@@ -126,31 +126,14 @@
                 <div class="dest-chosen" id="destChosen" style="display:none;"></div>
             </div>
 
-            <!-- Go button -->
+            <!-- Go button — now switches to map + opens drawer like Google Maps -->
             <button class="go-btn" id="goBtn" onclick="startDirections()">
-                🧭 Get Walking Directions
+                🧭 Show Route on Map
             </button>
 
-            <!-- Directions result -->
-            <div class="dir-result" id="dirResult" style="display:none;">
-                <div class="dir-summary-row">
-                    <div class="dir-sum-box">
-                        <div class="dir-sum-val" id="navDist">—</div>
-                        <div class="dir-sum-label">Distance</div>
-                    </div>
-                    <div class="dir-sum-sep"></div>
-                    <div class="dir-sum-box">
-                        <div class="dir-sum-val" id="navTime">—</div>
-                        <div class="dir-sum-label">Walk Time</div>
-                    </div>
-                    <div class="dir-sum-sep"></div>
-                    <div class="dir-sum-box">
-                        <div class="dir-sum-val" id="navSteps">—</div>
-                        <div class="dir-sum-label">Turns</div>
-                    </div>
-                </div>
-                <div class="dir-steps-list" id="navStepsList"></div>
-                <button class="show-on-map-btn" id="showOnMapBtn">🗺️ Show Route on Map</button>
+            <!-- Small hint below button -->
+            <div style="text-align:center;font-size:12px;color:var(--t3);margin-top:10px;padding:0 16px;">
+                The map will open with live walking directions overlay
             </div>
         </div>
     </div>
@@ -234,9 +217,12 @@
 
 <!-- ===== DIRECTIONS DRAWER ===== -->
 <div class="dir-drawer" id="dirDrawer">
+    <div class="dir-drawer-handle" id="drawerHandle">
+        <div class="dir-drawer-handle-bar"></div>
+    </div>
     <div class="dir-drawer-header">
         <div class="dir-drawer-title-wrap">
-            <span style="font-size:22px;">🧭</span>
+            <span style="font-size:20px;">🧭</span>
             <div>
                 <div class="dir-drawer-title">Walking Directions</div>
                 <div class="dir-drawer-dest" id="drawerDest">—</div>
@@ -254,6 +240,7 @@
     <div class="dir-drawer-loading" id="drawerLoading"><div class="dir-spin"></div><p>Finding walking route...</p></div>
     <div class="dir-drawer-error"   id="drawerError"   style="display:none;"><div style="font-size:36px">😕</div><p>Could not find route.<br>Please enable location.</p></div>
     <div class="dir-drawer-steps"   id="drawerSteps"></div>
+    <div class="dir-drawer-expand-hint" id="drawerHint">↑ Swipe up for all steps</div>
     <div class="dir-drawer-footer"  id="drawerFooter"  style="display:none;">
         <button class="cancel-dir-btn" onclick="closeDrawer()">✕ Cancel Route</button>
     </div>
