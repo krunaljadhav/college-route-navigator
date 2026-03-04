@@ -76,6 +76,7 @@ def nearby_buildings():
     except Exception:
         return jsonify({"error": "Invalid parameters"}), 400
 
-# Vercel requires exporting the app
+
+app = app
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
