@@ -1,0 +1,588 @@
+{
+  "buildings": [
+    {
+      "id": "main_gate",
+      "name": "Main Gate",
+      "code": "GATE",
+      "icon": "\ud83d\udeaa",
+      "description": "Main entrance gate to SVPM campus. Starting point for all campus visits.",
+      "coordinates": {
+        "latitude": 18.136095,
+        "longitude": 74.501313
+      },
+      "floor_count": 1,
+      "departments": [
+        "Security",
+        "Reception"
+      ],
+      "facilities": [
+        "Security Cabin",
+        "Visitor Entry"
+      ],
+      "image": "/static/images/main_gate.jpg"
+    },
+    {
+      "id": "main_ground",
+      "name": "Main Ground",
+      "code": "GRD",
+      "icon": "\ud83c\udfdf\ufe0f",
+      "description": "Main open ground used for college events, sports activities and gatherings.",
+      "coordinates": {
+        "latitude": 18.136468,
+        "longitude": 74.500019
+      },
+      "floor_count": 1,
+      "departments": [
+        "Sports"
+      ],
+      "facilities": [
+        "Open Ground",
+        "Event Space"
+      ],
+      "image": "/static/images/main_ground.jpg"
+    },
+    {
+      "id": "garden_area",
+      "name": "Garden Area",
+      "code": "GDN",
+      "icon": "\ud83c\udf3f",
+      "description": "Scenic garden area on campus, great for relaxation and outdoor study sessions.",
+      "coordinates": {
+        "latitude": 18.137246,
+        "longitude": 74.499853
+      },
+      "floor_count": 1,
+      "departments": [
+        "Campus Grounds"
+      ],
+      "facilities": [
+        "Seating Area",
+        "Green Space",
+        "Walking Path"
+      ],
+      "image": "/static/images/garden_area.jpg"
+    },
+    {
+      "id": "auditorium",
+      "name": "Auditorium",
+      "code": "AUD",
+      "icon": "\ud83c\udfad",
+      "description": "Main auditorium for college events, seminars, cultural programs and convocations.",
+      "coordinates": {
+        "latitude": 18.136945,
+        "longitude": 74.498553
+      },
+      "floor_count": 2,
+      "departments": [
+        "Events",
+        "Cultural Committee"
+      ],
+      "facilities": [
+        "Stage",
+        "Seating",
+        "Audio System",
+        "Lighting",
+        "AC"
+      ],
+      "image": "/static/images/auditorium.jpg"
+    },
+    {
+      "id": "hostel_gate",
+      "name": "Hostel Gate",
+      "code": "HG",
+      "icon": "\ud83d\udd10",
+      "description": "Entry gate to the hostel area. Security check point for hostel residents.",
+      "coordinates": {
+        "latitude": 18.136921,
+        "longitude": 74.498305
+      },
+      "floor_count": 1,
+      "departments": [
+        "Hostel Administration"
+      ],
+      "facilities": [
+        "Security",
+        "Entry/Exit Control"
+      ],
+      "image": "/static/images/hostel_gate.jpg"
+    },
+    {
+      "id": "rajmata_hostel",
+      "name": "Rajmata Jijau Girls Hostel",
+      "code": "RJH",
+      "icon": "\ud83c\udfe0",
+      "description": "Girls hostel named after Rajmata Jijau. Residential facility for female students.",
+      "coordinates": {
+        "latitude": 18.136613,
+        "longitude": 74.497941
+      },
+      "floor_count": 3,
+      "departments": [
+        "Hostel Administration",
+        "Warden Office"
+      ],
+      "facilities": [
+        "Rooms",
+        "Common Room",
+        "Study Hall",
+        "Mess",
+        "Laundry"
+      ],
+      "image": "/static/images/rajmata_hostel.jpg"
+    },
+    {
+      "id": "savitribai_hostel",
+      "name": "Savitribai Phule Girls Hostel",
+      "code": "SPH",
+      "icon": "\ud83c\udfe0",
+      "description": "Girls hostel named after Savitribai Phule. Modern residential facility for female students.",
+      "coordinates": {
+        "latitude": 18.136823,
+        "longitude": 74.496937
+      },
+      "floor_count": 3,
+      "departments": [
+        "Hostel Administration",
+        "Warden Office"
+      ],
+      "facilities": [
+        "Rooms",
+        "Common Room",
+        "Study Hall",
+        "WiFi"
+      ],
+      "image": "/static/images/savitribai_hostel.jpg"
+    },
+    {
+      "id": "ahilyadevi_hostel",
+      "name": "Ahilyadevi Girls Hostel",
+      "code": "AGH",
+      "icon": "\ud83c\udfe0",
+      "description": "Girls hostel named after Ahilyadevi. Comfortable residential facility for female students.",
+      "coordinates": {
+        "latitude": 18.136615,
+        "longitude": 74.496959
+      },
+      "floor_count": 3,
+      "departments": [
+        "Hostel Administration",
+        "Warden Office"
+      ],
+      "facilities": [
+        "Rooms",
+        "Common Room",
+        "Study Hall",
+        "WiFi"
+      ],
+      "image": "/static/images/ahilyadevi_hostel.jpg"
+    },
+    {
+      "id": "girls_gym",
+      "name": "Girls Gym Court",
+      "code": "GGC",
+      "icon": "\ud83c\udfcb\ufe0f",
+      "description": "Dedicated gym and sports court facility for female students.",
+      "coordinates": {
+        "latitude": 18.137164,
+        "longitude": 74.497489
+      },
+      "floor_count": 1,
+      "departments": [
+        "Sports Department"
+      ],
+      "facilities": [
+        "Gym Equipment",
+        "Sports Court",
+        "Changing Rooms"
+      ],
+      "image": "/static/images/girls_gym.jpg"
+    },
+    {
+      "id": "girls_mess",
+      "name": "Chetana & SVPM's Girls Mess",
+      "code": "GM",
+      "icon": "\ud83c\udf7d\ufe0f",
+      "description": "Main dining facility for female students offering breakfast, lunch and dinner.",
+      "coordinates": {
+        "latitude": 18.137118,
+        "longitude": 74.497745
+      },
+      "floor_count": 1,
+      "departments": [
+        "Mess Administration"
+      ],
+      "facilities": [
+        "Dining Hall",
+        "Kitchen",
+        "Seating Area"
+      ],
+      "image": "/static/images/girls_mess.jpg"
+    },
+    {
+      "id": "pharmacy_college",
+      "name": "SVPM College of Pharmacy",
+      "code": "PHARM",
+      "icon": "\ud83d\udc8a",
+      "description": "SVPM College of Pharmacy offering undergraduate and postgraduate pharmacy programs.",
+      "coordinates": {
+        "latitude": 18.137413,
+        "longitude": 74.499291
+      },
+      "floor_count": 4,
+      "departments": [
+        "Pharmaceutics",
+        "Pharmacology",
+        "Pharmacognosy",
+        "Pharmaceutical Chemistry"
+      ],
+      "facilities": [
+        "Labs",
+        "Library",
+        "Classrooms",
+        "Research Center"
+      ],
+      "image": "/static/images/pharmacy_college.jpg"
+    },
+    {
+      "id": "ground",
+      "name": "Play Ground Near Pharmacy College",
+      "code": "GRD2",
+      "icon": "\u26bd",
+      "description": "Sports ground for outdoor games and physical activities.",
+      "coordinates": {
+        "latitude": 18.137423,
+        "longitude": 74.498755
+      },
+      "floor_count": 1,
+      "departments": [
+        "Sports"
+      ],
+      "facilities": [
+        "Cricket",
+        "Football",
+        "Athletics"
+      ],
+      "image": "/static/images/ground.jpg"
+    },
+    {
+      "id": "diploma_engineering",
+      "name": "Diploma College of Engineering",
+      "code": "DCE",
+      "icon": "\ud83d\udd27",
+      "description": "Diploma Engineering college offering polytechnic programs in various engineering streams.",
+      "coordinates": {
+        "latitude": 18.138617,
+        "longitude": 74.499209
+      },
+      "floor_count": 3,
+      "departments": [
+        "Civil Engineering",
+        "Mechanical Engineering",
+        "Electronics",
+        "Computer Engineering"
+      ],
+      "facilities": [
+        "Labs",
+        "Classrooms",
+        "Drawing Hall",
+        "Library"
+      ],
+      "image": "/static/images/diploma_engineering.jpg"
+    },
+    {
+      "id": "workshop",
+      "name": "Workshop",
+      "code": "WS",
+      "icon": "\u2699\ufe0f",
+      "description": "Engineering workshop for practical training in mechanical, electrical and fabrication work.",
+      "coordinates": {
+        "latitude": 18.138059,
+        "longitude": 74.498362
+      },
+      "floor_count": 1,
+      "departments": [
+        "Mechanical Engineering",
+        "Workshop Department"
+      ],
+      "facilities": [
+        "Lathe Machines",
+        "Welding Area",
+        "Fitting Section",
+        "Carpentry"
+      ],
+      "image": "/static/images/workshop.jpg"
+    },
+    {
+      "id": "canteen",
+      "name": "Canteen",
+      "code": "CAN",
+      "icon": "\ud83c\udf5c",
+      "description": "Main college canteen serving food and beverages for all students and staff.",
+      "coordinates": {
+        "latitude": 18.138667,
+        "longitude": 74.498447
+      },
+      "floor_count": 1,
+      "departments": [
+        "Canteen Services"
+      ],
+      "facilities": [
+        "Food Counter",
+        "Seating",
+        "Snacks",
+        "Beverages"
+      ],
+      "image": "/static/images/canteen.jpg"
+    },
+    {
+      "id": "engineering_college",
+      "name": "College of Engineering",
+      "code": "COE",
+      "icon": "\ud83c\udfdb\ufe0f",
+      "description": "SVPM College of Engineering - main engineering building with state-of-the-art labs and classrooms.",
+      "coordinates": {
+        "latitude": 18.139469,
+        "longitude": 74.498776
+      },
+      "floor_count": 5,
+      "departments": [
+        "Computer Engineering",
+        "IT",
+        "Mechanical",
+        "Civil",
+        "Electronics & Telecom"
+      ],
+      "facilities": [
+        "Computer Labs",
+        "Smart Classrooms",
+        "Seminar Hall",
+        "Project Lab",
+        "Library"
+      ],
+      "image": "/static/images/engineering_college.jpg"
+    },
+    {
+      "id": "play_ground",
+      "name": "Play Ground Near Boys Hostel",
+      "code": "PG",
+      "icon": "\ud83c\udfc3",
+      "description": "Large outdoor play ground for cricket, football and other sports activities.",
+      "coordinates": {
+        "latitude": 18.138908,
+        "longitude": 74.498294
+      },
+      "floor_count": 1,
+      "departments": [
+        "Sports Department"
+      ],
+      "facilities": [
+        "Cricket Pitch",
+        "Football Field",
+        "Running Track"
+      ],
+      "image": "/static/images/play_ground.jpg"
+    },
+    {
+      "id": "basketball_court",
+      "name": "Basketball Court",
+      "code": "BBC",
+      "icon": "\ud83c\udfc0",
+      "description": "Outdoor basketball court for students to practice and compete.",
+      "coordinates": {
+        "latitude": 18.139409,
+        "longitude": 74.497905
+      },
+      "floor_count": 1,
+      "departments": [
+        "Sports Department"
+      ],
+      "facilities": [
+        "Basketball Hoops",
+        "Marked Court",
+        "Spectator Area"
+      ],
+      "image": "/static/images/basketball_court.jpg"
+    },
+    {
+      "id": "boys_hostel",
+      "name": "Boys Hostel",
+      "code": "BH",
+      "icon": "\ud83c\udfe2",
+      "description": "Residential hostel facility for male students with all basic amenities.",
+      "coordinates": {
+        "latitude": 18.139063,
+        "longitude": 74.497928
+      },
+      "floor_count": 4,
+      "departments": [
+        "Hostel Administration",
+        "Warden Office"
+      ],
+      "facilities": [
+        "Rooms",
+        "Common Room",
+        "Study Hall",
+        "WiFi",
+        "Laundry"
+      ],
+      "image": "/static/images/boys_hostel.jpg"
+    },
+    {
+      "id": "shree_mess",
+      "name": "Sanskruti Mess",
+      "code": "SM",
+      "icon": "\ud83c\udf5b",
+      "description": "Shree Mess serving home-style meals to students. Breakfast, lunch and dinner available.",
+      "coordinates": {
+        "latitude": 18.138808,
+        "longitude": 74.497526
+      },
+      "floor_count": 1,
+      "departments": [
+        "Mess Administration"
+      ],
+      "facilities": [
+        "Dining Hall",
+        "Kitchen",
+        "Thali Service"
+      ],
+      "image": "/static/images/shree_mess.jpg"
+    },
+    {
+      "id": "coutegess",
+      "name": "Courtess Area",
+      "code": "CTG",
+      "icon": "\ud83c\udfd8\ufe0f",
+      "description": "Cottages area on campus providing accommodation and facilities.",
+      "coordinates": {
+        "latitude": 18.138717,
+        "longitude": 74.496915
+      },
+      "floor_count": 1,
+      "departments": [
+        "Campus Housing"
+      ],
+      "facilities": [
+        "Accommodation",
+        "Common Area"
+      ],
+      "image": "/static/images/coutegess.jpg"
+    },
+    {
+      "id": "electrical_dept",
+      "name": "Electrical Engineering Department SVPM",
+      "code": "EED",
+      "icon": "\u26a1",
+      "description": "Dedicated Electrical Engineering department building with specialized labs and classrooms.",
+      "coordinates": {
+        "latitude": 18.140426,
+        "longitude": 74.497887
+      },
+      "floor_count": 3,
+      "departments": [
+        "Electrical Engineering",
+        "Power Systems",
+        "Control Systems"
+      ],
+      "facilities": [
+        "Electrical Labs",
+        "Power Lab",
+        "Simulation Lab",
+        "Smart Classrooms"
+      ],
+      "image": "/static/images/electrical_dept.jpg"
+    },
+    {
+      "id": "commerce_science",
+      "name": "SVPM's College of Commerce, Science & Computer Engineering",
+      "code": "CSCE",
+      "icon": "\ud83d\udcbb",
+      "description": "College offering programs in Commerce, Science and Computer Engineering streams.",
+      "coordinates": {
+        "latitude": 18.140938,
+        "longitude": 74.497336
+      },
+      "floor_count": 4,
+      "departments": [
+        "Commerce",
+        "Computer Science",
+        "Science",
+        "BCA",
+        "BBA"
+      ],
+      "facilities": [
+        "Computer Labs",
+        "Science Labs",
+        "Library",
+        "Classrooms",
+        "Seminar Hall"
+      ],
+      "image": "/static/images/commerce_science.jpg"
+    },
+    {
+      "id": "management_gate",
+      "name": "Management Gate",
+      "code": "MG",
+      "icon": "\ud83d\udea7",
+      "description": "Management block entrance gate. Access to management and administrative offices.",
+      "coordinates": {
+        "latitude": 18.141152,
+        "longitude": 74.497258
+      },
+      "floor_count": 1,
+      "departments": [
+        "Administration",
+        "Management"
+      ],
+      "facilities": [
+        "Security",
+        "Parking",
+        "Office Entry"
+      ],
+      "image": "/static/images/management_gate.jpg"
+    },
+    {
+      "id": "xerox_center",
+      "name": "Xerox Center",
+      "code": "XRX",
+      "icon": "\ud83d\udda8\ufe0f",
+      "description": "Xerox and printing center for students to print notes, assignments and documents.",
+      "coordinates": {
+        "latitude": 18.138372,
+        "longitude": 74.49964
+      },
+      "floor_count": 1,
+      "departments": [
+        "Student Services"
+      ],
+      "facilities": [
+        "Printing",
+        "Photocopying",
+        "Binding",
+        "Scanning"
+      ],
+      "image": "/static/images/xerox_center.jpg"
+    },
+    {
+      "id": "parking_area",
+      "name": "Parking Area",
+      "code": "PARK",
+      "icon": "\ud83c\udd7f\ufe0f",
+      "description": "Main parking area for students, staff and visitors vehicles.",
+      "coordinates": {
+        "latitude": 18.138113,
+        "longitude": 74.499807
+      },
+      "floor_count": 1,
+      "departments": [
+        "Campus Services"
+      ],
+      "facilities": [
+        "Two-Wheeler Parking",
+        "Four-Wheeler Parking",
+        "Security"
+      ],
+      "image": "/static/images/parking_area.jpg"
+    }
+  ]
+}

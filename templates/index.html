@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SVPM'S College Route Navigator</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+<!-- ===== HEADER ===== -->
+<header class="header">
+    <div class="header-inner">
+        <div class="logo">
+            <div class="logo-pin">📍</div>
+            <div>
+                <div class="logo-name">SVPM'S College Route Navigator</div>
+                <div class="logo-sub">Malegaon Campus (Bk)</div>
+            </div>
+        </div>
+        <button class="header-loc-btn" id="headerLocBtn" title="My Location">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/>
+                <line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/>
+            </svg>
+        </button>
+    </div>
+</header>
+
+<!-- ===== PAGES ===== -->
+<main class="main-content">
+
+    <!-- PAGE 1: MAP -->
+    <div class="page active" id="page-map">
+        <!-- Search bar over map -->
+        <div class="map-search-bar">
+            <div class="map-search-inner">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="s-icon">
+                    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                </svg>
+                <input type="text" id="mapSearchInput" placeholder="Search buildings, departments...">
+                <div class="search-results-dropdown" id="mapSearchResults"></div>
+            </div>
+            <div class="map-pill-btns">
+                <button class="pill-btn active" id="pillAll"   onclick="filterMarkers('all')">All</button>
+                <button class="pill-btn"         id="pillAcad" onclick="filterMarkers('academic')">🎓 Academic</button>
+                <button class="pill-btn"         id="pillFood" onclick="filterMarkers('food')">🍽️ Food</button>
+                <button class="pill-btn"         id="pillHost" onclick="filterMarkers('hostel')">🏠 Hostel</button>
+                <button class="pill-btn"         id="pillSpt"  onclick="filterMarkers('sports')">⚽ Sports</button>
+            </div>
+        </div>
+        <!-- Map -->
+        <div id="map"></div>
+        <!-- Map controls -->
+        <div class="map-fab-group">
+            <button class="fab" id="fabSat"    title="Toggle Satellite">🛰️</button>
+            <button class="fab" id="fabCenter" title="Recenter">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- PAGE 2: DIRECTORY -->
+    <div class="page" id="page-directory">
+        <div class="page-scroll">
+            <div class="dir-search-wrap">
+                <div class="dir-search-box">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="s-icon">
+                        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                    </svg>
+                    <input type="text" id="dirSearchInput" placeholder="Search all locations...">
+                </div>
+                <!-- Category filter chips -->
+                <div class="cat-chips" id="catChips">
+                    <button class="chip active" onclick="dirFilter('all',this)">All</button>
+                    <button class="chip" onclick="dirFilter('academic',this)">🎓 Academic</button>
+                    <button class="chip" onclick="dirFilter('hostel',this)">🏠 Hostel</button>
+                    <button class="chip" onclick="dirFilter('food',this)">🍽️ Food</button>
+                    <button class="chip" onclick="dirFilter('sports',this)">⚽ Sports</button>
+                    <button class="chip" onclick="dirFilter('services',this)">🔧 Services</button>
+                </div>
+            </div>
+            <div class="dir-count" id="dirCount">26 locations</div>
+            <div class="dir-list" id="dirList"></div>
+        </div>
+    </div>
+
+    <!-- PAGE 3: NAVIGATE -->
+    <div class="page" id="page-navigate">
+        <div class="page-scroll">
+            <div class="nav-page-header">
+                <div class="nav-page-title">🧭 Get Directions</div>
+                <div class="nav-page-sub">Walk from your location to any building</div>
+            </div>
+
+            <!-- From -->
+            <div class="route-card">
+                <div class="route-card-label">FROM</div>
+                <div class="route-from-box" id="routeFromBox">
+                    <div class="route-from-dot"></div>
+                    <span id="routeFromText">📍 My current location</span>
+                    <div class="loc-status" id="locStatus">—</div>
+                </div>
+            </div>
+
+            <!-- Arrow -->
+            <div class="route-arrow">↓</div>
+
+            <!-- To -->
+            <div class="route-card">
+                <div class="route-card-label">TO</div>
+                <div class="route-to-search">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="s-icon">
+                        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                    </svg>
+                    <input type="text" id="navDestInput" placeholder="Search destination...">
+                </div>
+                <div class="dest-results" id="destResults"></div>
+                <div class="dest-chosen" id="destChosen" style="display:none;"></div>
+            </div>
+
+            <!-- Go button -->
+            <button class="go-btn" id="goBtn" onclick="startDirections()">
+                🧭 Get Walking Directions
+            </button>
+
+            <!-- Directions result -->
+            <div class="dir-result" id="dirResult" style="display:none;">
+                <div class="dir-summary-row">
+                    <div class="dir-sum-box">
+                        <div class="dir-sum-val" id="navDist">—</div>
+                        <div class="dir-sum-label">Distance</div>
+                    </div>
+                    <div class="dir-sum-sep"></div>
+                    <div class="dir-sum-box">
+                        <div class="dir-sum-val" id="navTime">—</div>
+                        <div class="dir-sum-label">Walk Time</div>
+                    </div>
+                    <div class="dir-sum-sep"></div>
+                    <div class="dir-sum-box">
+                        <div class="dir-sum-val" id="navSteps">—</div>
+                        <div class="dir-sum-label">Turns</div>
+                    </div>
+                </div>
+                <div class="dir-steps-list" id="navStepsList"></div>
+                <button class="show-on-map-btn" id="showOnMapBtn">🗺️ Show Route on Map</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PAGE 4: INFO -->
+    <div class="page" id="page-info">
+        <div class="page-scroll">
+            <!-- Campus card -->
+            <div class="info-hero">
+                <div class="info-hero-icon">🎓</div>
+                <div class="info-hero-title">SVPM Campus</div>
+                <div class="info-hero-sub">Pandharpur, Maharashtra</div>
+                <div class="info-hero-stats">
+                    <div class="hero-stat"><span class="hero-stat-val">26</span><span class="hero-stat-label">Locations</span></div>
+                    <div class="hero-stat-sep"></div>
+                    <div class="hero-stat"><span class="hero-stat-val">6+</span><span class="hero-stat-label">Colleges</span></div>
+                    <div class="hero-stat-sep"></div>
+                    <div class="hero-stat"><span class="hero-stat-val">3</span><span class="hero-stat-label">Hostels</span></div>
+                </div>
+            </div>
+
+            <!-- Quick contacts -->
+            <div class="info-section-title">📞 Quick Contacts</div>
+            <div class="info-cards" id="contactCards">
+                <div class="info-contact-card">
+                    <div class="contact-icon">🏛️</div>
+                    <div class="contact-info">
+                        <div class="contact-name">College of Engineering</div>
+                        <div class="contact-role">Main Office</div>
+                    </div>
+                    <a href="tel:" class="contact-call-btn">Call</a>
+                </div>
+                <div class="info-contact-card">
+                    <div class="contact-icon">💊</div>
+                    <div class="contact-info">
+                        <div class="contact-name">College of Pharmacy</div>
+                        <div class="contact-role">Main Office</div>
+                    </div>
+                    <a href="tel:" class="contact-call-btn">Call</a>
+                </div>
+                <div class="info-contact-card">
+                    <div class="contact-icon">🚨</div>
+                    <div class="contact-info">
+                        <div class="contact-name">Security</div>
+                        <div class="contact-role">Main Gate</div>
+                    </div>
+                    <a href="tel:" class="contact-call-btn">Call</a>
+                </div>
+            </div>
+
+            <!-- Emergency -->
+            <div class="info-section-title">🚨 Emergency</div>
+            <div class="emergency-row">
+                <a href="tel:100" class="emergency-btn police">🚔 Police<br><span>100</span></a>
+                <a href="tel:108" class="emergency-btn ambulance">🚑 Ambulance<br><span>108</span></a>
+                <a href="tel:101" class="emergency-btn fire">🚒 Fire<br><span>101</span></a>
+            </div>
+
+            <!-- All buildings summary -->
+            <div class="info-section-title">🏢 All Locations</div>
+            <div class="all-loc-list" id="allLocList"></div>
+
+            <!-- App info -->
+            <div class="app-info-box">
+                <div class="app-info-title">📱 SVPM Campus Navigator</div>
+                <div class="app-info-text">Free campus navigation powered by OpenStreetMap & OSRM. No API key, no payments, works on any device.</div>
+                <div class="app-info-version">v2.0 · Built for SVPM Students</div>
+            </div>
+        </div>
+    </div>
+
+</main>
+
+<!-- ===== BUILDING DETAILS SHEET ===== -->
+<div class="bottom-sheet-overlay" id="sheetOverlay" onclick="closeSheet()"></div>
+<div class="bottom-sheet" id="buildingSheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-close-btn" id="sheetClose" onclick="closeSheet()">✕</div>
+    <div class="sheet-body" id="sheetBody"></div>
+</div>
+
+<!-- ===== DIRECTIONS DRAWER ===== -->
+<div class="dir-drawer" id="dirDrawer">
+    <div class="dir-drawer-header">
+        <div class="dir-drawer-title-wrap">
+            <span style="font-size:22px;">🧭</span>
+            <div>
+                <div class="dir-drawer-title">Walking Directions</div>
+                <div class="dir-drawer-dest" id="drawerDest">—</div>
+            </div>
+        </div>
+        <button class="dir-drawer-close" onclick="closeDrawer()">✕</button>
+    </div>
+    <div class="dir-drawer-summary" id="drawerSummary" style="display:none;">
+        <div class="dsm-box"><div class="dsm-val" id="dDist">—</div><div class="dsm-lbl">Distance</div></div>
+        <div class="dsm-sep"></div>
+        <div class="dsm-box"><div class="dsm-val" id="dTime">—</div><div class="dsm-lbl">Walk Time</div></div>
+        <div class="dsm-sep"></div>
+        <div class="dsm-box"><div class="dsm-val" id="dTurns">—</div><div class="dsm-lbl">Turns</div></div>
+    </div>
+    <div class="dir-drawer-loading" id="drawerLoading"><div class="dir-spin"></div><p>Finding walking route...</p></div>
+    <div class="dir-drawer-error"   id="drawerError"   style="display:none;"><div style="font-size:36px">😕</div><p>Could not find route.<br>Please enable location.</p></div>
+    <div class="dir-drawer-steps"   id="drawerSteps"></div>
+    <div class="dir-drawer-footer"  id="drawerFooter"  style="display:none;">
+        <button class="cancel-dir-btn" onclick="closeDrawer()">✕ Cancel Route</button>
+    </div>
+</div>
+
+<!-- ===== BOTTOM NAV ===== -->
+<nav class="bottom-nav">
+    <button class="nav-btn active" onclick="goPage('map',this)" id="navMap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="3 11 22 2 13 21 11 13 3 11"/>
+        </svg>
+        <span>Map</span>
+    </button>
+    <button class="nav-btn" onclick="goPage('directory',this)" id="navDir">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+            <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+        </svg>
+        <span>Directory</span>
+    </button>
+    <button class="nav-btn" onclick="goPage('navigate',this)" id="navNav">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 8l4 4-4 4M8 12h8"/>
+        </svg>
+        <span>Navigate</span>
+    </button>
+    <button class="nav-btn" onclick="goPage('info',this)" id="navInfo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <span>Info</span>
+    </button>
+</nav>
+
+<!-- LOADING -->
+<div class="global-loading" id="globalLoading">
+    <div class="gl-spinner"></div>
+    <p>Loading SVPM Campus...</p>
+</div>
+
+<!-- TOAST -->
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script src="/static/js/app.js"></script>
+</body>
+</html>
