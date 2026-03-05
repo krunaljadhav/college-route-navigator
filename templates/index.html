@@ -18,17 +18,25 @@
         <div class="logo">
             <div class="logo-pin">📍</div>
             <div>
-                <div class="logo-name">SVPM'S College Route Navigator</div>
-                <div class="logo-sub">Malegaon Campus (Bk)</div>
+                <div class="logo-name" data-i18n="appName">SVPM'S College Route Navigator</div>
+                <div class="logo-sub" data-i18n="campus">Malegaon Campus (Bk)</div>
             </div>
         </div>
-        <button class="header-loc-btn" id="headerLocBtn" title="My Location">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="10"/>
-                <line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/>
-                <line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/>
-            </svg>
-        </button>
+        <div class="header-right">
+            <!-- Language switcher -->
+            <div class="lang-switcher" id="langSwitcher">
+                <button class="lang-btn active" onclick="setLang('en')">EN</button>
+                <button class="lang-btn" onclick="setLang('mr')">मरा</button>
+                <button class="lang-btn" onclick="setLang('hi')">हिं</button>
+            </div>
+            <button class="header-loc-btn" id="headerLocBtn" title="My Location">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/>
+                    <line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/>
+                </svg>
+            </button>
+        </div>
     </div>
 </header>
 
@@ -43,19 +51,42 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="s-icon">
                     <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
                 </svg>
-                <input type="text" id="mapSearchInput" placeholder="Search buildings, departments...">
+                <input type="text" id="mapSearchInput" placeholder="Search buildings, departments..." data-i18n-ph="searchPh">
                 <div class="search-results-dropdown" id="mapSearchResults"></div>
             </div>
+            <!-- Quick Location Dropdown -->
+            <div class="map-dropdown-wrap">
+                <div class="map-dropdown-inner">
+                    <span class="dropdown-icon">🏢</span>
+                    <select id="locationDropdown" onchange="dropdownPickLocation(this.value)">
+                        <option value="" data-i18n="dropdownDefault">— Quick Go to Location —</option>
+                    </select>
+                    <svg class="dropdown-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+            </div>
             <div class="map-pill-btns">
-                <button class="pill-btn active" id="pillAll"   onclick="filterMarkers('all')">All</button>
-                <button class="pill-btn"         id="pillAcad" onclick="filterMarkers('academic')">🎓 Academic</button>
-                <button class="pill-btn"         id="pillFood" onclick="filterMarkers('food')">🍽️ Food</button>
-                <button class="pill-btn"         id="pillHost" onclick="filterMarkers('hostel')">🏠 Hostel</button>
-                <button class="pill-btn"         id="pillSpt"  onclick="filterMarkers('sports')">⚽ Sports</button>
+                <button class="pill-btn active" id="pillAll"   onclick="filterMarkers('all')" data-i18n="catAll">All</button>
+                <button class="pill-btn"         id="pillAcad" onclick="filterMarkers('academic')">🎓 <span data-i18n="catAcad">Academic</span></button>
+                <button class="pill-btn"         id="pillFood" onclick="filterMarkers('food')">🍽️ <span data-i18n="catFood">Food</span></button>
+                <button class="pill-btn"         id="pillHost" onclick="filterMarkers('hostel')">🏠 <span data-i18n="catHostel">Hostel</span></button>
+                <button class="pill-btn"         id="pillSpt"  onclick="filterMarkers('sports')">⚽ <span data-i18n="catSports">Sports</span></button>
             </div>
         </div>
         <!-- Map -->
         <div id="map"></div>
+
+        <!-- Direction Arrow Overlay — shown while navigating -->
+        <div class="direction-arrow-hud" id="directionHud" style="display:none;">
+            <div class="dir-arrow-ring">
+                <div class="dir-arrow-inner" id="dirArrowInner">
+                    <svg class="dir-arrow-svg" id="dirArrowSvg" viewBox="0 0 48 48">
+                        <polygon points="24,4 34,40 24,32 14,40" fill="#3B82F6" stroke="white" stroke-width="2"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="dir-arrow-dist" id="dirArrowDist">—</div>
+        </div>
+
         <!-- Map controls -->
         <div class="map-fab-group">
             <button class="fab" id="fabSat"    title="Toggle Satellite">🛰️</button>
@@ -79,15 +110,15 @@
                 </div>
                 <!-- Category filter chips -->
                 <div class="cat-chips" id="catChips">
-                    <button class="chip active" onclick="dirFilter('all',this)">All</button>
-                    <button class="chip" onclick="dirFilter('academic',this)">🎓 Academic</button>
-                    <button class="chip" onclick="dirFilter('hostel',this)">🏠 Hostel</button>
-                    <button class="chip" onclick="dirFilter('food',this)">🍽️ Food</button>
-                    <button class="chip" onclick="dirFilter('sports',this)">⚽ Sports</button>
-                    <button class="chip" onclick="dirFilter('services',this)">🔧 Services</button>
+                    <button class="chip active" onclick="dirFilter('all',this)" data-i18n="catAll">All</button>
+                    <button class="chip" onclick="dirFilter('academic',this)">🎓 <span data-i18n="catAcad">Academic</span></button>
+                    <button class="chip" onclick="dirFilter('hostel',this)">🏠 <span data-i18n="catHostel">Hostel</span></button>
+                    <button class="chip" onclick="dirFilter('food',this)">🍽️ <span data-i18n="catFood">Food</span></button>
+                    <button class="chip" onclick="dirFilter('sports',this)">⚽ <span data-i18n="catSports">Sports</span></button>
+                    <button class="chip" onclick="dirFilter('services',this)">🔧 <span data-i18n="catServices">Services</span></button>
                 </div>
             </div>
-            <div class="dir-count" id="dirCount">26 locations</div>
+            <div class="dir-count" id="dirCount"><span id="dirCountNum">26</span> <span data-i18n="locations">locations</span></div>
             <div class="dir-list" id="dirList"></div>
         </div>
     </div>
@@ -96,16 +127,16 @@
     <div class="page" id="page-navigate">
         <div class="page-scroll">
             <div class="nav-page-header">
-                <div class="nav-page-title">🧭 Get Directions</div>
-                <div class="nav-page-sub">Walk from your location to any building</div>
+                <div class="nav-page-title" data-i18n="navTitle">🧭 Get Directions</div>
+                <div class="nav-page-sub" data-i18n="navSub">Walk from your location to any building</div>
             </div>
 
             <!-- From -->
             <div class="route-card">
-                <div class="route-card-label">FROM</div>
+                <div class="route-card-label" data-i18n="labelFrom">FROM</div>
                 <div class="route-from-box" id="routeFromBox">
                     <div class="route-from-dot"></div>
-                    <span id="routeFromText">📍 My current location</span>
+                    <span id="routeFromText" data-i18n="myLocation">📍 My current location</span>
                     <div class="loc-status" id="locStatus">—</div>
                 </div>
             </div>
@@ -115,12 +146,21 @@
 
             <!-- To -->
             <div class="route-card">
-                <div class="route-card-label">TO</div>
+                <div class="route-card-label" data-i18n="labelTo">TO</div>
+                <!-- Dropdown select -->
+                <div class="nav-dropdown-wrap">
+                    <span class="dropdown-icon">🏢</span>
+                    <select id="navLocationDropdown" onchange="dropdownSelectDest(this.value)">
+                        <option value="" data-i18n="dropdownDefault">— Select a location —</option>
+                    </select>
+                    <svg class="dropdown-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+                <div class="nav-or-divider"><span data-i18n="orSearch">or search</span></div>
                 <div class="route-to-search">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="s-icon">
                         <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
                     </svg>
-                    <input type="text" id="navDestInput" placeholder="Search destination...">
+                    <input type="text" id="navDestInput" placeholder="Type to search..." data-i18n-ph="searchPh">
                 </div>
                 <div class="dest-results" id="destResults"></div>
                 <div class="dest-chosen" id="destChosen" style="display:none;"></div>
@@ -147,60 +187,57 @@
                 <div class="info-hero-title">SVPM Campus</div>
                 <div class="info-hero-sub">Pandharpur, Maharashtra</div>
                 <div class="info-hero-stats">
-                    <div class="hero-stat"><span class="hero-stat-val">26</span><span class="hero-stat-label">Locations</span></div>
+                    <div class="hero-stat"><span class="hero-stat-val">26</span><span class="hero-stat-label" data-i18n="statLocations">Locations</span></div>
                     <div class="hero-stat-sep"></div>
-                    <div class="hero-stat"><span class="hero-stat-val">6+</span><span class="hero-stat-label">Colleges</span></div>
+                    <div class="hero-stat"><span class="hero-stat-val">6+</span><span class="hero-stat-label" data-i18n="statColleges">Colleges</span></div>
                     <div class="hero-stat-sep"></div>
-                    <div class="hero-stat"><span class="hero-stat-val">3</span><span class="hero-stat-label">Hostels</span></div>
+                    <div class="hero-stat"><span class="hero-stat-val">3</span><span class="hero-stat-label" data-i18n="statHostels">Hostels</span></div>
                 </div>
             </div>
 
             <!-- Quick contacts -->
-            <div class="info-section-title">📞 Quick Contacts</div>
+            <div class="info-section-title" data-i18n="quickContacts">📞 Quick Contacts</div>
             <div class="info-cards" id="contactCards">
                 <div class="info-contact-card">
                     <div class="contact-icon">🏛️</div>
                     <div class="contact-info">
-                        <div class="contact-name">College of Engineering</div>
-                        <div class="contact-role">Main Office</div>
+                        <div class="contact-name" data-i18n="coeContact">College of Engineering</div>
+                        <div class="contact-role" data-i18n="mainOffice">Main Office</div>
                     </div>
-                    <a href="tel:" class="contact-call-btn">Call</a>
+                    <a href="tel:" class="contact-call-btn" data-i18n="call">Call</a>
                 </div>
                 <div class="info-contact-card">
                     <div class="contact-icon">💊</div>
                     <div class="contact-info">
-                        <div class="contact-name">College of Pharmacy</div>
-                        <div class="contact-role">Main Office</div>
+                        <div class="contact-name" data-i18n="pharmacyContact">College of Pharmacy</div>
+                        <div class="contact-role" data-i18n="mainOffice">Main Office</div>
                     </div>
-                    <a href="tel:" class="contact-call-btn">Call</a>
+                    <a href="tel:" class="contact-call-btn" data-i18n="call">Call</a>
                 </div>
                 <div class="info-contact-card">
                     <div class="contact-icon">🚨</div>
                     <div class="contact-info">
-                        <div class="contact-name">Security</div>
-                        <div class="contact-role">Main Gate</div>
+                        <div class="contact-name" data-i18n="security">Security</div>
+                        <div class="contact-role" data-i18n="mainGate">Main Gate</div>
                     </div>
-                    <a href="tel:" class="contact-call-btn">Call</a>
+                    <a href="tel:" class="contact-call-btn" data-i18n="call">Call</a>
                 </div>
             </div>
 
-            <!-- Emergency -->
-            <div class="info-section-title">🚨 Emergency</div>
+            <div class="info-section-title" data-i18n="emergency">🚨 Emergency</div>
             <div class="emergency-row">
-                <a href="tel:100" class="emergency-btn police">🚔 Police<br><span>100</span></a>
-                <a href="tel:108" class="emergency-btn ambulance">🚑 Ambulance<br><span>108</span></a>
-                <a href="tel:101" class="emergency-btn fire">🚒 Fire<br><span>101</span></a>
+                <a href="tel:100" class="emergency-btn police">🚔 <span data-i18n="police">Police</span><br><span>100</span></a>
+                <a href="tel:108" class="emergency-btn ambulance">🚑 <span data-i18n="ambulance">Ambulance</span><br><span>108</span></a>
+                <a href="tel:101" class="emergency-btn fire">🚒 <span data-i18n="fire">Fire</span><br><span>101</span></a>
             </div>
 
-            <!-- All buildings summary -->
-            <div class="info-section-title">🏢 All Locations</div>
+            <div class="info-section-title" data-i18n="allLocations">🏢 All Locations</div>
             <div class="all-loc-list" id="allLocList"></div>
 
-            <!-- App info -->
             <div class="app-info-box">
-                <div class="app-info-title">📱 SVPM Campus Navigator</div>
-                <div class="app-info-text">Free campus navigation powered by OpenStreetMap & OSRM. No API key, no payments, works on any device.</div>
-                <div class="app-info-version">v2.0 · Built for SVPM Students</div>
+                <div class="app-info-title" data-i18n="appInfoTitle">📱 SVPM Campus Navigator</div>
+                <div class="app-info-text" data-i18n="appInfoText">Free campus navigation powered by OpenStreetMap & OSRM. No API key, no payments, works on any device.</div>
+                <div class="app-info-version">v2.0 · <span data-i18n="builtFor">Built for SVPM Students</span></div>
             </div>
         </div>
     </div>
@@ -252,28 +289,28 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polygon points="3 11 22 2 13 21 11 13 3 11"/>
         </svg>
-        <span>Map</span>
+        <span data-i18n="navMap">Map</span>
     </button>
     <button class="nav-btn" onclick="goPage('directory',this)" id="navDir">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
             <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
         </svg>
-        <span>Directory</span>
+        <span data-i18n="navDirectory">Directory</span>
     </button>
     <button class="nav-btn" onclick="goPage('navigate',this)" id="navNav">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="10"/>
             <path d="M12 8l4 4-4 4M8 12h8"/>
         </svg>
-        <span>Navigate</span>
+        <span data-i18n="navNavigate">Navigate</span>
     </button>
     <button class="nav-btn" onclick="goPage('info',this)" id="navInfo">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="10"/>
             <line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
         </svg>
-        <span>Info</span>
+        <span data-i18n="navInfo">Info</span>
     </button>
 </nav>
 
