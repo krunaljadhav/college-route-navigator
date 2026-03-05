@@ -402,29 +402,59 @@ input{font-family:'Outfit',sans-serif;}
 /* ===== DIRECTIONS DRAWER — Google Maps Style ===== */
 
 /* PEEK HEIGHT = handle(22px) + header(54px) + stats(52px) + footer(50px) = ~178px */
-:root { --peek-h: 178px; }
+/* MINI HEIGHT = just the grab-tab = 40px */
+:root { --peek-h: 178px; --mini-h: 40px; }
 
 .dir-drawer{
     position:fixed;left:0;right:0;bottom:var(--nav-h);z-index:900;
     background:rgba(11,15,26,.97);backdrop-filter:blur(24px);
     border:1px solid var(--border2);border-radius:var(--r3) var(--r3) 0 0;
-    /* Full height — visibility controlled by transform */
     height:72vh;
     display:flex;flex-direction:column;
-    /* Start fully hidden off screen */
     transform:translateY(100%);
     transition:transform 400ms cubic-bezier(.4,0,.2,1);
     box-shadow:0 -8px 48px rgba(0,0,0,.75);
     will-change:transform;
 }
-/* PEEK: slides up just enough to show handle + header + stats + cancel btn */
+/* PEEK: handle + header + stats + cancel */
 .dir-drawer.active{
     transform:translateY(calc(100% - var(--peek-h)));
 }
-/* EXPANDED: full drawer visible — all steps */
+/* MINI: only the pull-tab strip visible */
+.dir-drawer.mini{
+    transform:translateY(calc(100% - var(--mini-h)));
+}
+/* EXPANDED: full steps list */
 .dir-drawer.expanded{
     transform:translateY(0);
 }
+
+/* Mini-tab strip (always rendered, just hidden when not mini) */
+.dir-mini-tab{
+    display:none;
+    height:var(--mini-h);
+    align-items:center; justify-content:space-between;
+    padding:0 16px; cursor:pointer; flex-shrink:0;
+}
+.dir-drawer.mini .dir-mini-tab{ display:flex; }
+.dir-drawer.mini .dir-drawer-handle,
+.dir-drawer.mini .dir-drawer-header,
+.dir-drawer.mini .dir-drawer-summary,
+.dir-drawer.mini .dir-drawer-loading,
+.dir-drawer.mini .dir-drawer-error,
+.dir-drawer.mini .dir-drawer-footer,
+.dir-drawer.mini .dir-drawer-steps{ display:none !important; }
+.dir-mini-info{
+    display:flex; align-items:center; gap:10px;
+    font-family:'Outfit',sans-serif;
+}
+.dir-mini-dist{ font-size:13px; font-weight:800; color:var(--primary); }
+.dir-mini-sep{ color:var(--border2); font-size:12px; }
+.dir-mini-time{ font-size:12px; font-weight:600; color:var(--t2); }
+.dir-mini-expand{
+    font-size:11px; color:var(--t3); display:flex; align-items:center; gap:4px;
+}
+.dir-mini-expand svg{ width:14px;height:14px;stroke:var(--t3); }
 
 /* Drag handle */
 .dir-drawer-handle{
@@ -641,38 +671,19 @@ input{font-family:'Outfit',sans-serif;}
 .nav-or-divider::before { left:0; }
 .nav-or-divider::after  { right:0; }
 
-/* ===== DIRECTION ARROW HUD ===== */
-.direction-arrow-hud {
-    position:absolute; top:50%; right:14px;
-    transform:translateY(-50%);
-    z-index:500; display:flex; flex-direction:column;
-    align-items:center; gap:6px;
-    pointer-events:none;
+/* ===== DIRECTION ARROW — on route line, like Google Maps ===== */
+.route-direction-arrow {
+    background: none !important;
+    border: none !important;
 }
-.dir-arrow-ring {
-    width:60px; height:60px; border-radius:50%;
-    background:rgba(11,15,26,.88); backdrop-filter:blur(12px);
-    border:2px solid var(--primary); display:flex;
-    align-items:center; justify-content:center;
-    box-shadow:0 4px 20px rgba(59,130,246,.35), 0 0 0 4px rgba(59,130,246,.1);
-    animation:arrowPulse 2s ease-in-out infinite;
+.route-arrow-wrap {
+    width: 36px; height: 36px;
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.35s cubic-bezier(.4,0,.2,1);
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,.6));
 }
-@keyframes arrowPulse {
-    0%,100% { box-shadow:0 4px 20px rgba(59,130,246,.35), 0 0 0 4px rgba(59,130,246,.1); }
-    50%      { box-shadow:0 4px 28px rgba(59,130,246,.6),  0 0 0 8px rgba(59,130,246,.15); }
-}
-.dir-arrow-inner {
-    width:44px; height:44px; display:flex;
-    align-items:center; justify-content:center;
-    transition:transform 0.4s cubic-bezier(.4,0,.2,1);
-}
-.dir-arrow-svg { width:36px; height:36px; filter:drop-shadow(0 2px 4px rgba(0,0,0,.4)); }
-.dir-arrow-dist {
-    background:rgba(11,15,26,.88); backdrop-filter:blur(12px);
-    border:1px solid var(--border2); border-radius:20px;
-    padding:4px 10px; font-size:11px; font-weight:700;
-    color:var(--primary); font-family:'JetBrains Mono',monospace;
-    white-space:nowrap;
+.route-arrow-wrap svg {
+    width: 28px; height: 28px;
 }
 
 /* ===== IMPROVED USER LOCATION MARKER ===== */
@@ -721,3 +732,167 @@ input{font-family:'Outfit',sans-serif;}
     display:none;
 }
 .user-dot-wrap.has-heading .user-heading-cone { display:block; }
+
+/* ── Free-pan mode indicator on recenter FAB ── */
+.fab.follow-off {
+    border: 2px solid var(--orange, #EA580C) !important;
+    box-shadow: 0 0 0 3px rgba(234,88,12,.25) !important;
+}
+.fab.follow-off::after {
+    content: '';
+    position: absolute;
+    top: -4px; right: -4px;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--orange, #EA580C);
+    border: 2px solid var(--bg, #0B0F1A);
+}
+
+/* ══════════════════════════════════════════════
+   ARRIVAL CELEBRATION OVERLAY
+══════════════════════════════════════════════ */
+.arrival-overlay {
+    position: fixed; inset: 0; z-index: 1050;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(11,15,26,.85);
+    backdrop-filter: blur(12px);
+    opacity: 0; pointer-events: none;
+    transition: opacity 400ms ease;
+}
+.arrival-overlay.active {
+    opacity: 1; pointer-events: all;
+}
+
+.arrival-card {
+    position: relative;
+    width: min(88vw, 360px);
+    background: linear-gradient(145deg, #0F172A, #1E293B);
+    border: 1.5px solid rgba(59,130,246,.35);
+    border-radius: 28px;
+    padding: 40px 28px 32px;
+    text-align: center;
+    box-shadow: 0 24px 60px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.04);
+    transform: scale(.88);
+    transition: transform 400ms cubic-bezier(.34,1.56,.64,1);
+}
+.arrival-overlay.active .arrival-card {
+    transform: scale(1);
+}
+
+/* Pulsing green ring behind icon */
+.arrival-pulse-ring {
+    position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+    width: 90px; height: 90px; border-radius: 50%;
+    background: rgba(16,185,129,.15);
+    animation: arrivalRingPulse 1.4s ease-in-out infinite;
+}
+@keyframes arrivalRingPulse {
+    0%,100% { transform: translateX(-50%) scale(1);   opacity:.6; }
+    50%      { transform: translateX(-50%) scale(1.3); opacity:.2; }
+}
+
+.arrival-icon-wrap {
+    position: relative; margin: 0 auto 16px;
+    width: 72px; height: 72px; border-radius: 50%;
+    background: linear-gradient(135deg, #10B981, #059669);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 8px 24px rgba(16,185,129,.5);
+    animation: arrivalBounce .6s cubic-bezier(.34,1.56,.64,1) .1s both;
+}
+@keyframes arrivalBounce {
+    from { transform: scale(0) rotate(-20deg); }
+    to   { transform: scale(1) rotate(0deg); }
+}
+.arrival-icon { font-size: 36px; line-height:1; }
+
+.arrival-msg {
+    font-size: 28px; font-weight: 800; color: #10B981;
+    font-family: 'Outfit', sans-serif; margin-bottom: 6px;
+    text-shadow: 0 0 20px rgba(16,185,129,.4);
+}
+.arrival-name {
+    font-size: 17px; font-weight: 700; color: #F1F5F9;
+    font-family: 'Outfit', sans-serif; margin-bottom: 8px;
+}
+.arrival-sub {
+    font-size: 13px; color: #94A3B8;
+    font-family: 'Outfit', sans-serif;
+    line-height: 1.5; margin-bottom: 24px;
+}
+.arrival-close-btn {
+    width: 100%; padding: 14px;
+    background: linear-gradient(90deg, #10B981, #059669);
+    color: #fff; border: none; border-radius: 14px;
+    font-size: 15px; font-weight: 700;
+    font-family: 'Outfit', sans-serif;
+    cursor: pointer; letter-spacing: .03em;
+    box-shadow: 0 4px 16px rgba(16,185,129,.4);
+    transition: transform .15s, box-shadow .15s;
+}
+.arrival-close-btn:active {
+    transform: scale(.97);
+    box-shadow: 0 2px 8px rgba(16,185,129,.3);
+}
+
+/* ══════════════════════════════════════════════
+   LOCATION FAB — 3 states (Google Maps style)
+══════════════════════════════════════════════ */
+.fab-location { position: relative; overflow: visible; }
+.fab-loc-icon svg { width: 22px; height: 22px; stroke: var(--t2); transition: stroke .2s; }
+.fab-loc-pulse {
+    position: absolute; inset: -6px; border-radius: 50%;
+    border: 2px solid transparent; pointer-events: none;
+    transition: border-color .3s;
+}
+
+/* State: GPS found → icon turns blue */
+#fabCenter.loc-found .fab-loc-icon svg { stroke: #3B82F6; }
+#fabCenter.loc-found { border-color: rgba(59,130,246,.4); }
+
+/* State: loading → spinning ring */
+#fabCenter.loc-loading .fab-loc-pulse {
+    border-color: #3B82F6;
+    border-top-color: transparent;
+    animation: fabSpin .8s linear infinite;
+}
+@keyframes fabSpin { to { transform: rotate(360deg); } }
+
+/* State: follow-off (user dragged) → orange accent */
+#fabCenter.follow-off .fab-loc-icon svg { stroke: #EA580C; }
+#fabCenter.follow-off { border-color: rgba(234,88,12,.5); }
+#fabCenter.follow-off .fab-loc-pulse {
+    border-color: rgba(234,88,12,.4);
+    animation: fabPulseOrange 1.2s ease-in-out infinite;
+}
+@keyframes fabPulseOrange {
+    0%,100% { transform: scale(1);   opacity:.8; }
+    50%      { transform: scale(1.2); opacity:.3; }
+}
+
+/* Fit-all button */
+#fabFitAll svg { width:18px; height:18px; stroke:var(--t2); }
+#fabFitAll:hover svg { stroke:#fff; }
+
+/* ══════════════════════════════════════════════
+   SNAP-TO-ME FAB — appears during navigation
+══════════════════════════════════════════════ */
+#fabSnapToMe {
+    display: none;   /* hidden until route is active */
+    background: linear-gradient(135deg, #1E3A5F, #1C2338);
+    border-color: rgba(59,130,246,.5);
+    position: relative; overflow: visible;
+}
+#fabSnapToMe.active { display: flex; }
+#fabSnapToMe svg   { width:20px; height:20px; stroke:#3B82F6; }
+#fabSnapToMe::after {
+    content: '';
+    position: absolute; top:-3px; right:-3px;
+    width: 9px; height: 9px; border-radius: 50%;
+    background: #10B981;
+    border: 2px solid #0B0F1A;
+    animation: snapDot 1.5s ease-in-out infinite;
+}
+@keyframes snapDot {
+    0%,100% { transform: scale(1);   opacity:1; }
+    50%      { transform: scale(1.4); opacity:.6; }
+}

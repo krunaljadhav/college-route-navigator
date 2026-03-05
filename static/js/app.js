@@ -40,6 +40,7 @@ const LANGS = {
     calculating:'⏳ Calculating route...', routingErr:'Routing error',
     loaded:'locations loaded',
     dirCountLabel:'locations',
+    showingAll:'Showing all locations',
   },
   mr: {
     appName:'एसव्हीपीएम कॅम्पस नेव्हिगेटर', campus:'मालेगाव कॅम्पस (बक)',
@@ -72,6 +73,7 @@ const LANGS = {
     calculating:'⏳ मार्ग मोजत आहे...', routingErr:'मार्ग त्रुटी',
     loaded:'ठिकाणे लोड झाली',
     dirCountLabel:'ठिकाणे',
+    showingAll:'सर्व ठिकाणे दाखवत आहे',
   },
   hi: {
     appName:'एसवीपीएम कैंपस नेविगेटर', campus:'मालेगांव कैंपस (बक)',
@@ -104,6 +106,7 @@ const LANGS = {
     calculating:'⏳ रास्ता गणना हो रही है...', routingErr:'रूटिंग त्रुटि',
     loaded:'स्थान लोड हुए',
     dirCountLabel:'स्थान',
+    showingAll:'सभी स्थान दिखा रहे हैं',
   },
 };
 let currentLang = 'en';
@@ -481,6 +484,11 @@ const CAT = {
 // ===== STATE =====
 let map, streetTile, satTile;
 let markersLayer, routeLayer, destMarker;
+let autoFollow   = true;   // Fix 2: user can turn off auto-pan by dragging map
+let routeCoords  = [];     // Fix 3: full route coordinate array for progress trimming
+let passedIndex  = 0;      // Fix 3: how many coords the user has already passed
+let currentDest  = null;   // stores destination building object for arrival detection
+let arrivedShown = false;  // prevent showing arrival toast more than once
 let buildings     = [];
 let userLocation  = null;
 let userMarker    = null;
@@ -534,6 +542,52 @@ function initMap() {
 // ============================================================
 // DATA
 // ============================================================
+// Haversine distance in meters between two [lat,lng] points
+function haversineM(lat1, lng1, lat2, lng2) {
+    const R = 6371000;
+    const φ1 = lat1 * Math.PI / 180, φ2 = lat2 * Math.PI / 180;
+    const dφ = (lat2 - lat1) * Math.PI / 180;
+    const dλ = (lng2 - lng1) * Math.PI / 180;
+    const a  = Math.sin(dφ/2)**2 + Math.cos(φ1)*Math.cos(φ2)*Math.sin(dλ/2)**2;
+    return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+// ============================================================
+// BUILDING NAME TRANSLATIONS
+// Keys are exact English names from buildings.json
+// ============================================================
+const BUILDING_NAMES = {
+  'Main Gate':                        { mr:'मुख्य दरवाजा',                    hi:'मुख्य द्वार' },
+  'Main Ground':                      { mr:'मुख्य मैदान',                     hi:'मुख्य मैदान' },
+  'Garden Area':                      { mr:'बाग क्षेत्र',                      hi:'बगीचा क्षेत्र' },
+  'Auditorium':                       { mr:'सभागृह',                           hi:'सभागार' },
+  'Hostel Gate':                      { mr:'वसतिगृह दरवाजा',                  hi:'छात्रावास द्वार' },
+  'Rajmata Jijau Girls Hostel':       { mr:'राजमाता जिजाऊ मुलींचे वसतिगृह',   hi:'राजमाता जिजाऊ छात्रावास' },
+  'Savitribai Phule Girls Hostel':    { mr:'सावित्रीबाई फुले मुलींचे वसतिगृह', hi:'सावित्रीबाई फुले छात्रावास' },
+  'Ahilyadevi Girls Hostel':          { mr:'अहिल्यादेवी मुलींचे वसतिगृह',     hi:'अहिल्यादेवी छात्रावास' },
+  'Boys Hostel':                      { mr:'मुलांचे वसतिगृह',                 hi:'लड़कों का छात्रावास' },
+  'Girls Gym Court':                  { mr:'मुलींचे जिम मैदान',               hi:'लड़कियों का जिम कोर्ट' },
+  "Chetana & SVPM's Girls Mess":      { mr:'चेतना व एसव्हीपीएम मुलींचे जेवणघर', hi:'चेतना व एसवीपीएम छात्रावास भोजनालय' },
+  'SVPM College of Pharmacy':         { mr:'एसव्हीपीएम फार्मसी महाविद्यालय',  hi:'एसवीपीएम फार्मेसी कॉलेज' },
+  'Play Ground Near Pharmacy College':{ mr:'फार्मसी महाविद्यालयाजवळचे मैदान', hi:'फार्मेसी कॉलेज के पास मैदान' },
+  'Diploma College of Engineering':   { mr:'डिप्लोमा अभियांत्रिकी महाविद्यालय', hi:'डिप्लोमा इंजीनियरिंग कॉलेज' },
+  'Workshop':                         { mr:'कार्यशाळा',                        hi:'कार्यशाला' },
+  'Canteen':                          { mr:'कँटीन',                            hi:'कैंटीन' },
+  'College of Engineering':           { mr:'अभियांत्रिकी महाविद्यालय',        hi:'इंजीनियरिंग कॉलेज' },
+  'Play Ground Near Boys Hostel':     { mr:'मुलांच्या वसतिगृहाजवळचे मैदान',   hi:'लड़कों के छात्रावास के पास मैदान' },
+  'Basketball Court':                 { mr:'बास्केटबॉल मैदान',                hi:'बास्केटबॉल कोर्ट' },
+  'Parking Area':                     { mr:'पार्किंग क्षेत्र',                 hi:'पार्किंग क्षेत्र' },
+  'Xerox Center':                     { mr:'झेरॉक्स केंद्र',                   hi:'फोटोकॉपी केंद्र' },
+  'Dispensary':                       { mr:'दवाखाना',                          hi:'औषधालय' },
+  'Security Office':                  { mr:'सुरक्षा कार्यालय',                 hi:'सुरक्षा कार्यालय' },
+};
+
+// Return a building's display name in the current language
+function getBuildingName(b) {
+  if (currentLang === 'en') return b.name;
+  return (BUILDING_NAMES[b.name] && BUILDING_NAMES[b.name][currentLang]) || b.name;
+}
+
 async function loadBuildings() {
     const res  = await fetch('/api/buildings');
     const data = await res.json();
@@ -550,7 +604,7 @@ async function loadBuildings() {
 // ============================================================
 function rebuildDropdowns() {
     const opts = buildings.map(b =>
-        `<option value="${b.id}">${b.icon||'🏢'} ${b.name}</option>`
+        `<option value="${b.id}">${b.icon||'🏢'} ${getBuildingName(b)}</option>`
     ).join('');
     const def = `<option value="">${t('dropdownDefault')}</option>`;
     ['locationDropdown','navLocationDropdown'].forEach(id => {
@@ -575,18 +629,49 @@ function dropdownSelectDest(id) {
 // DIRECTION ARROW HUD
 // ============================================================
 let directionInterval = null;
+let routeArrowMarker  = null;
+let arrowVisible      = false;  // OFF by default
+let _arrowDestCoords  = null;   // saved so toggle can restart
 
 function startDirectionArrow(destCoords) {
-    const hud = document.getElementById('directionHud');
-    hud.style.display = 'flex';
-    updateDirectionArrow(destCoords);
-    directionInterval = setInterval(() => updateDirectionArrow(destCoords), 1000);
+    _arrowDestCoords = destCoords;
+    arrowVisible     = false;          // always start hidden
+    stopDirectionArrow();
+    updateArrowToggleBtn();
 }
 
 function stopDirectionArrow() {
-    const hud = document.getElementById('directionHud');
-    if (hud) hud.style.display = 'none';
     if (directionInterval) { clearInterval(directionInterval); directionInterval = null; }
+    if (routeArrowMarker)  { map.removeLayer(routeArrowMarker); routeArrowMarker = null; }
+    arrowVisible = false;
+    updateArrowToggleBtn();
+}
+
+function toggleDirectionArrow() {
+    if (!_arrowDestCoords) return;
+    arrowVisible = !arrowVisible;
+    if (arrowVisible) {
+        updateDirectionArrow(_arrowDestCoords);
+        directionInterval = setInterval(() => updateDirectionArrow(_arrowDestCoords), 1000);
+    } else {
+        if (directionInterval) { clearInterval(directionInterval); directionInterval = null; }
+        if (routeArrowMarker)  { map.removeLayer(routeArrowMarker); routeArrowMarker = null; }
+    }
+    updateArrowToggleBtn();
+}
+
+function updateArrowToggleBtn() {
+    const btn = document.getElementById('btnArrowToggle');
+    if (!btn) return;
+    if (arrowVisible) {
+        btn.style.background    = 'rgba(59,130,246,.2)';
+        btn.style.borderColor   = 'rgba(59,130,246,.6)';
+        btn.querySelector('svg').setAttribute('stroke', '#3B82F6');
+    } else {
+        btn.style.background    = 'rgba(100,116,139,.15)';
+        btn.style.borderColor   = 'rgba(100,116,139,.3)';
+        btn.querySelector('svg').setAttribute('stroke', '#94A3B8');
+    }
 }
 
 function updateDirectionArrow(destCoords) {
@@ -594,32 +679,51 @@ function updateDirectionArrow(destCoords) {
     const from = userLocation;
     const to   = destCoords;
 
-    // Bearing calculation
+    // Bearing: user → destination
     const φ1 = from.latitude  * Math.PI / 180;
     const φ2 = to.latitude    * Math.PI / 180;
     const Δλ = (to.longitude - from.longitude) * Math.PI / 180;
-    const y   = Math.sin(Δλ) * Math.cos(φ2);
-    const x   = Math.cos(φ1)*Math.sin(φ2) - Math.sin(φ1)*Math.cos(φ2)*Math.cos(Δλ);
+    const y  = Math.sin(Δλ) * Math.cos(φ2);
+    const x  = Math.cos(φ1)*Math.sin(φ2) - Math.sin(φ1)*Math.cos(φ2)*Math.cos(Δλ);
     const bearing = (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
 
-    // Straight-line distance
-    const R   = 6371000;
-    const dφ  = (to.latitude  - from.latitude)  * Math.PI / 180;
-    const dλ  = (to.longitude - from.longitude) * Math.PI / 180;
-    const a   = Math.sin(dφ/2)**2 + Math.cos(φ1)*Math.cos(φ2)*Math.sin(dλ/2)**2;
-    const dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    // Place/update a rotating arrow marker at user's position on the route
+    const arrowHtml = `
+        <div class="route-arrow-wrap" style="transform:rotate(${bearing}deg)">
+            <svg viewBox="0 0 32 32" fill="none">
+                <circle cx="16" cy="16" r="15" fill="rgba(11,15,26,.85)" stroke="#3B82F6" stroke-width="1.5"/>
+                <polygon points="16,5 21,22 16,18 11,22" fill="#3B82F6" stroke="white" stroke-width="1"/>
+            </svg>
+        </div>`;
 
-    // Rotate the SVG arrow
-    const inner = document.getElementById('dirArrowInner');
-    if (inner) inner.style.transform = `rotate(${bearing}deg)`;
+    const icon = L.divIcon({
+        className: 'route-direction-arrow',
+        html: arrowHtml,
+        iconSize:   [36, 36],
+        iconAnchor: [18, 18],
+    });
 
-    // Update distance label
-    const distEl = document.getElementById('dirArrowDist');
-    if (distEl) {
-        distEl.textContent = dist >= 1000
-            ? (dist/1000).toFixed(1)+' km'
-            : Math.round(dist)+'m';
+    if (!routeArrowMarker) {
+        routeArrowMarker = L.marker(
+            [from.latitude, from.longitude],
+            { icon, zIndexOffset: 800, interactive: false }
+        ).addTo(map);
+    } else {
+        routeArrowMarker.setLatLng([from.latitude, from.longitude]);
+        routeArrowMarker.setIcon(icon);
     }
+}
+
+// ── Drawer minimize ─────────────────────────────────────────────────────────
+function minimizeDrawer() {
+    const drawer = document.getElementById('dirDrawer');
+    drawer.classList.remove('active', 'expanded');
+    drawer.classList.add('mini');
+}
+function expandFromMini() {
+    const drawer = document.getElementById('dirDrawer');
+    drawer.classList.remove('mini', 'expanded');
+    drawer.classList.add('active');
 }
 
 
@@ -726,6 +830,7 @@ function openDrawer(b) {
     const drawer = document.getElementById('dirDrawer');
     drawer.classList.remove('expanded');
     drawer.classList.add('active');
+    document.getElementById('fabSnapToMe').classList.add('active');
 
     // Start direction arrow HUD
     startDirectionArrow(b.coordinates);
@@ -735,10 +840,105 @@ function openDrawer(b) {
 
 function closeDrawer() {
     const drawer = document.getElementById('dirDrawer');
-    drawer.classList.remove('active');
-    drawer.classList.remove('expanded');
+    drawer.classList.remove('active', 'expanded', 'mini');
+    stopDirectionArrow();
+    autoFollow   = true;
+    routeCoords  = [];
+    passedIndex  = 0;
+    currentDest  = null;
+    arrivedShown = false;
+    document.getElementById('fabCenter').classList.remove('follow-off');
+    document.getElementById('fabSnapToMe').classList.remove('active');
+    clearRoute();
+}
+
+// ── Arrival celebration ──────────────────────────────────────────────────────
+function showArrivalScreen(building) {
+    // 1. Close the directions drawer immediately (free the map)
+    const drawer = document.getElementById('dirDrawer');
+    drawer.classList.remove('active', 'expanded');
     stopDirectionArrow();
     clearRoute();
+
+    // 2. Show full-screen arrival overlay
+    const overlay = document.getElementById('arrivalOverlay');
+    document.getElementById('arrivalIcon').textContent  = building.icon || '📍';
+    document.getElementById('arrivalName').textContent  = building.name;
+
+    const msgMap = {
+        en: "You've arrived!",
+        mr: "तुम्ही पोहोचलात!",
+        hi: "आप पहुँच गए!",
+    };
+    document.getElementById('arrivalMsg').textContent = msgMap[currentLang] || msgMap.en;
+
+    const subMap = {
+        en: "Great job! You reached your destination.",
+        mr: "शाब्बास! तुम्ही तुमच्या गंतव्यस्थानावर पोहोचलात.",
+        hi: "शाबाश! आप अपने गंतव्य तक पहुँच गए।",
+    };
+    document.getElementById('arrivalSub').textContent = subMap[currentLang] || subMap.en;
+
+    const btnMap = { en: 'Close', mr: 'बंद करा', hi: 'बंद करें' };
+    document.getElementById('arrivalCloseBtn').textContent = btnMap[currentLang] || btnMap.en;
+
+    overlay.classList.add('active');
+
+    // 3. Confetti burst
+    launchConfetti();
+
+    // 4. Auto-dismiss after 6 seconds
+    setTimeout(() => dismissArrival(), 6000);
+}
+
+function dismissArrival() {
+    document.getElementById('arrivalOverlay').classList.remove('active');
+    document.getElementById('fabSnapToMe').classList.remove('active');
+    currentDest  = null;
+    arrivedShown = false;
+    routeCoords  = [];
+    passedIndex  = 0;
+    document.getElementById('fabCenter').classList.remove('follow-off');
+}
+
+function launchConfetti() {
+    const canvas = document.getElementById('confettiCanvas');
+    const ctx    = canvas.getContext('2d');
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const pieces = Array.from({ length: 120 }, () => ({
+        x:    Math.random() * canvas.width,
+        y:    -20 - Math.random() * 80,
+        r:    4 + Math.random() * 6,
+        d:    Math.random() * 80 + 20,
+        color: ['#3B82F6','#10B981','#F59E0B','#EF4444','#8B5CF6','#06B6D4','#F97316'][Math.floor(Math.random()*7)],
+        tilt:  Math.random() * 10 - 10,
+        tiltAngle: 0,
+        tiltSpeed: 0.1 + Math.random() * 0.1,
+    }));
+
+    let frame = 0;
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        pieces.forEach(p => {
+            ctx.beginPath();
+            ctx.lineWidth  = p.r;
+            ctx.strokeStyle = p.color;
+            ctx.moveTo(p.x + p.tilt + p.r / 2, p.y);
+            ctx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r / 2);
+            ctx.stroke();
+            p.tiltAngle  += p.tiltSpeed;
+            p.y           += Math.cos(frame / 10 + p.d) + 2;
+            p.x           += Math.sin(frame / 5) * 1.5;
+            p.tilt         = Math.sin(p.tiltAngle) * 12;
+            if (p.y > canvas.height) { p.y = -20; p.x = Math.random() * canvas.width; }
+        });
+        frame++;
+        if (frame < 180) requestAnimationFrame(draw);
+        else ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+    draw();
 }
 
 async function drawRoute(from, to, building) {
@@ -802,7 +1002,9 @@ async function drawRoute(from, to, building) {
     
     destMarker = L.marker([to.latitude, to.longitude], { icon: dicon, zIndexOffset: 900 }).addTo(map);
 
-    const url = `${OSRM}${from.longitude},${from.latitude};${to.longitude},${to.latitude}?overview=full&geometries=geojson&steps=true`;
+    // Fix 1: Use radiuses to snap to walkable paths on campus (50m snap radius)
+    // continue_straight=false lets OSRM turn immediately instead of going around
+    const url = `${OSRM}${from.longitude},${from.latitude};${to.longitude},${to.latitude}?overview=full&geometries=geojson&steps=true&continue_straight=false&radiuses=50;50`;
     try {
         const res  = await fetch(url);
         const data = await res.json();
@@ -840,6 +1042,11 @@ async function drawRoute(from, to, building) {
         }, 50);
         
         routeLayer = { line, dash, animation: animateDash };
+        routeCoords  = coords.slice();
+        passedIndex  = 0;
+        autoFollow   = true;
+        currentDest  = building;
+        arrivedShown = false;
         
         // Auto-zoom: bottom padding = peek height (178px) + nav bar (68px)
         setTimeout(() => {
@@ -858,6 +1065,11 @@ async function drawRoute(from, to, building) {
         const time = mins < 60 ? mins+' min' : Math.floor(mins/60)+'h '+(mins%60)+'m';
         document.getElementById('dDist').textContent  = dist;
         document.getElementById('dTime').textContent  = time;
+        // Mini-tab stats
+        document.getElementById('miniDist').textContent = dist;
+        document.getElementById('miniTime').textContent = time;
+        const expandLbls = { en:'expand', mr:'उघडा', hi:'खोलें' };
+        document.getElementById('miniExpandLabel').textContent = expandLbls[currentLang] || 'expand';
         document.getElementById('dTurns').textContent = legs.steps.length;
         document.getElementById('drawerSummary').style.display = 'flex';
         document.getElementById('drawerLoading').style.display = 'none';
@@ -1159,6 +1371,7 @@ function getUserLocation(cb, silent) {
         ], 17);
 
         document.getElementById('locStatus').textContent = '✅ ' + t('locFound').replace('📍 ','');
+        setFabLocState('found');
 
         if (!silent)
             toast(t('locFound'), 'ok');
@@ -1182,19 +1395,47 @@ function getUserLocation(cb, silent) {
             };
 
             if (userMarker) {
-
                 userMarker.setLatLng([lat, lng]);
-
             }
 
-            // AUTO FOLLOW USER WHILE WALKING
             if (routeLayer) {
+                // ── Arrival detection ─────────────────────────────────────────
+                if (currentDest && !arrivedShown) {
+                    const distToDest = haversineM(
+                        lat, lng,
+                        currentDest.coordinates.latitude,
+                        currentDest.coordinates.longitude
+                    );
+                    if (distToDest < 20) {   // within 20 m = arrived
+                        arrivedShown = true;
+                        showArrivalScreen(currentDest);
+                        return;
+                    }
+                }
 
-                map.panTo([lat, lng], {
-                    animate: true,
-                    duration: 0.5
-                });
+                // ── Trim passed route segments ────────────────────────────────
+                if (routeCoords.length > 2) {
+                    let closestIdx = passedIndex;
+                    let closestDist = Infinity;
+                    const searchTo = Math.min(routeCoords.length - 1, passedIndex + 30);
+                    for (let i = passedIndex; i <= searchTo; i++) {
+                        const d = haversineM(lat, lng, routeCoords[i][0], routeCoords[i][1]);
+                        if (d < closestDist) { closestDist = d; closestIdx = i; }
+                    }
+                    if (closestDist < 25 && closestIdx > passedIndex) {
+                        passedIndex = closestIdx;
+                        const remaining = [[lat, lng], ...routeCoords.slice(passedIndex)];
+                        if (remaining.length >= 2) {
+                            routeLayer.line.setLatLngs(remaining);
+                            routeLayer.dash.setLatLngs(remaining);
+                        }
+                    }
+                }
 
+                // ── Auto-pan only if follow mode is on ────────────────────────
+                if (autoFollow) {
+                    map.panTo([lat, lng], { animate: true, duration: 0.4 });
+                }
             }
 
         }, err => {
@@ -1272,13 +1513,100 @@ function goPage(name, btn) {
 // ============================================================
 function setupEvents() {
     document.getElementById('headerLocBtn').addEventListener('click', () => getUserLocation(null, false));
-    document.getElementById('fabCenter').addEventListener('click', () => map.flyTo(CENTER, 16, { duration: 1.2 }));
+
+    // ── Drag → free-pan mode ──
+    map.on('dragstart', () => {
+        if (routeLayer) {
+            autoFollow = false;
+            document.getElementById('fabCenter').classList.add('follow-off');
+        }
+    });
+
+    // ── My Location FAB — 3 states like Google Maps ──
+    // State 1: no GPS yet    → grey, tap to request GPS
+    // State 2: GPS found     → blue, tap to fly to user
+    // State 3: navigating + user dragged → orange ring, tap to re-follow
+    document.getElementById('fabCenter').addEventListener('click', () => {
+        autoFollow = true;
+        document.getElementById('fabCenter').classList.remove('follow-off');
+
+        if (!userLocation) {
+            // No GPS — animate loading state, then request
+            setFabLocState('loading');
+            getUserLocation(() => {
+                setFabLocState('found');
+                map.flyTo([userLocation.latitude, userLocation.longitude], 18, {
+                    animate: true, duration: 0.9, easeLinearity: 0.25
+                });
+            }, false);
+        } else {
+            // GPS known — smooth fly to user
+            setFabLocState('found');
+            map.flyTo([userLocation.latitude, userLocation.longitude], 18, {
+                animate: true, duration: 0.9, easeLinearity: 0.25
+            });
+        }
+    });
+
+    // ── Fit-all FAB: zoom to show every building ──
+    document.getElementById('fabFitAll').addEventListener('click', () => {
+        if (!buildings.length) return;
+        const latlngs = buildings.map(b => [b.coordinates.latitude, b.coordinates.longitude]);
+        const bounds  = L.latLngBounds(latlngs);
+        map.flyToBounds(bounds, {
+            paddingTopLeft:     [40, 80],
+            paddingBottomRight: [40, 80],
+            maxZoom: 17,
+            animate: true,
+            duration: 0.9,
+        });
+        toast('🗺️ ' + t('showingAll'), 'inf');
+    });
+
+    // ── Snap-to-me FAB: shows during navigation, snaps map to user position ──
+    document.getElementById('fabSnapToMe').addEventListener('click', () => {
+        if (!userLocation) {
+            toast(t('gettingLoc'), 'inf');
+            return;
+        }
+        autoFollow = true;
+        document.getElementById('fabCenter').classList.remove('follow-off');
+        // Fit both user and destination in view if available
+        if (currentDest) {
+            const bounds = L.latLngBounds([
+                [userLocation.latitude, userLocation.longitude],
+                [currentDest.coordinates.latitude, currentDest.coordinates.longitude]
+            ]);
+            map.flyToBounds(bounds, {
+                paddingTopLeft:     [60, 110],
+                paddingBottomRight: [60, 260],
+                maxZoom: 18,
+                animate: true,
+                duration: 0.8,
+            });
+        } else {
+            map.flyTo([userLocation.latitude, userLocation.longitude], 18, {
+                animate: true, duration: 0.8, easeLinearity: 0.25
+            });
+        }
+    });
+
     document.getElementById('fabSat').addEventListener('click', () => {
         isSat = !isSat;
         document.getElementById('fabSat').classList.toggle('active', isSat);
         if (isSat) { map.removeLayer(streetTile); satTile.addTo(map); toast('🗺️ Dark street view', 'inf'); }
         else        { map.removeLayer(satTile); streetTile.addTo(map); toast('🛰️ Satellite + roads', 'inf'); }
     });
+}
+
+// ── FAB location button state helper ──────────────────────────────────────────
+function setFabLocState(state) {
+    const fab   = document.getElementById('fabCenter');
+    const pulse = document.getElementById('fabLocPulse');
+    fab.classList.remove('loc-loading', 'loc-found', 'loc-follow');
+    if (state === 'loading') fab.classList.add('loc-loading');
+    if (state === 'found')   fab.classList.add('loc-found');
+    if (state === 'follow')  fab.classList.add('loc-follow');
 }
 
 // ============================================================
@@ -1304,7 +1632,11 @@ window.clearDest        = clearDest;
 window.startDirections  = startDirections;
 window.mapSearchPick    = mapSearchPick;
 window.dirFilter        = dirFilter;
-window.closeDrawer      = closeDrawer;
+window.closeDrawer          = closeDrawer;
+window.minimizeDrawer       = minimizeDrawer;
+window.expandFromMini       = expandFromMini;
+window.toggleDirectionArrow = toggleDirectionArrow;
+window.dismissArrival       = dismissArrival;
 window.setLang          = setLang;
 window.dropdownPickLocation = dropdownPickLocation;
 window.dropdownSelectDest   = dropdownSelectDest;

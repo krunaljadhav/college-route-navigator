@@ -76,24 +76,35 @@
         <div id="map"></div>
 
         <!-- Direction Arrow Overlay — shown while navigating -->
-        <div class="direction-arrow-hud" id="directionHud" style="display:none;">
-            <div class="dir-arrow-ring">
-                <div class="dir-arrow-inner" id="dirArrowInner">
-                    <svg class="dir-arrow-svg" id="dirArrowSvg" viewBox="0 0 48 48">
-                        <polygon points="24,4 34,40 24,32 14,40" fill="#3B82F6" stroke="white" stroke-width="2"/>
-                    </svg>
-                </div>
-            </div>
-            <div class="dir-arrow-dist" id="dirArrowDist">—</div>
-        </div>
-
         <!-- Map controls -->
         <div class="map-fab-group">
-            <button class="fab" id="fabSat"    title="Toggle Satellite">🛰️</button>
-            <button class="fab" id="fabCenter" title="Recenter">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/>
+            <button class="fab" id="fabSat" title="Toggle Satellite">🛰️</button>
+            <!-- Fit all buildings -->
+            <button class="fab" id="fabFitAll" title="Show all buildings">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+                    <rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>
                 </svg>
+            </button>
+            <!-- Snap to me during navigation -->
+            <button class="fab" id="fabSnapToMe" title="Show my location on route">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <path d="M12 2L8 8H3l4 3.5L5.5 18 12 14.5 18.5 18 17 11.5 21 8h-5L12 2z"/>
+                </svg>
+            </button>
+            <!-- My location -->
+            <button class="fab fab-location" id="fabCenter" title="My Location">
+                <span class="fab-loc-icon" id="fabLocIcon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                        <circle cx="12" cy="12" r="3" fill="currentColor"/>
+                        <circle cx="12" cy="12" r="7"/>
+                        <line x1="12" y1="1" x2="12" y2="5"/>
+                        <line x1="12" y1="19" x2="12" y2="23"/>
+                        <line x1="1" y1="12" x2="5" y2="12"/>
+                        <line x1="19" y1="12" x2="23" y2="12"/>
+                    </svg>
+                </span>
+                <span class="fab-loc-pulse" id="fabLocPulse"></span>
             </button>
         </div>
     </div>
@@ -252,8 +263,37 @@
     <div class="sheet-body" id="sheetBody"></div>
 </div>
 
+<!-- ===== ARRIVAL CELEBRATION ===== -->
+<canvas id="confettiCanvas" style="position:fixed;inset:0;z-index:1100;pointer-events:none;"></canvas>
+<div class="arrival-overlay" id="arrivalOverlay">
+    <div class="arrival-card">
+        <div class="arrival-pulse-ring"></div>
+        <div class="arrival-icon-wrap">
+            <div class="arrival-icon" id="arrivalIcon">📍</div>
+        </div>
+        <div class="arrival-msg"  id="arrivalMsg">You've arrived!</div>
+        <div class="arrival-name" id="arrivalName">Destination</div>
+        <div class="arrival-sub"  id="arrivalSub">Great job! You reached your destination.</div>
+        <button class="arrival-close-btn" id="arrivalCloseBtn" onclick="dismissArrival()">Close</button>
+    </div>
+</div>
+
 <!-- ===== DIRECTIONS DRAWER ===== -->
 <div class="dir-drawer" id="dirDrawer">
+    <!-- Mini pull-tab (only visible in mini state) -->
+    <div class="dir-mini-tab" id="dirMiniTab" onclick="expandFromMini()">
+        <div class="dir-mini-info">
+            <span class="dir-mini-dist" id="miniDist">—</span>
+            <span class="dir-mini-sep">·</span>
+            <span class="dir-mini-time" id="miniTime">—</span>
+        </div>
+        <div class="dir-mini-expand">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="18 15 12 9 6 15"/>
+            </svg>
+            <span id="miniExpandLabel">expand</span>
+        </div>
+    </div>
     <div class="dir-drawer-handle" id="drawerHandle">
         <div class="dir-drawer-handle-bar"></div>
     </div>
@@ -261,11 +301,25 @@
         <div class="dir-drawer-title-wrap">
             <span style="font-size:20px;">🧭</span>
             <div>
-                <div class="dir-drawer-title">Walking Directions</div>
+                <div class="dir-drawer-title" data-i18n="dirTitle">Walking Directions</div>
                 <div class="dir-drawer-dest" id="drawerDest">—</div>
             </div>
         </div>
-        <button class="dir-drawer-close" onclick="closeDrawer()">✕</button>
+        <div style="display:flex;gap:6px;align-items:center;">
+            <!-- Direction arrow toggle -->
+            <button class="dir-drawer-close" id="btnArrowToggle" onclick="toggleDirectionArrow()" title="Toggle direction arrow" style="background:rgba(100,116,139,.15);border-color:rgba(100,116,139,.3);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2" width="14" height="14">
+                    <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
+                </svg>
+            </button>
+            <!-- Minimize to tab -->
+            <button class="dir-drawer-close" onclick="minimizeDrawer()" title="Minimize" style="background:rgba(59,130,246,.12);border-color:rgba(59,130,246,.3);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2.5" width="14" height="14">
+                    <polyline points="6 9 12 15 18 9"/>
+                </svg>
+            </button>
+            <button class="dir-drawer-close" onclick="closeDrawer()">✕</button>
+        </div>
     </div>
     <div class="dir-drawer-summary" id="drawerSummary" style="display:none;">
         <div class="dsm-box"><div class="dsm-val" id="dDist">—</div><div class="dsm-lbl">Distance</div></div>
