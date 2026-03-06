@@ -16,6 +16,52 @@ const CENTER = [18.1385, 74.4985];
 // automatic recalculation is triggered.
 const OFF_PATH_THRESHOLD = 60;
 
+// ── Campus boundary & mandatory dual-point gate entry ────────────────────────
+//
+// Two gate waypoints are required to force the route to physically cross from
+// the public road INTO the campus, rather than touching the gate and routing
+// back along the road (the single-waypoint U-turn problem visible in the app).
+//
+// GATE_OUTSIDE  — road-side approach point, on the public footpath/road just
+//                 in front of the gate entrance.
+// GATE_INSIDE   — campus-side point, a few metres inside the gate threshold.
+//                 Forces OSRM to commit to the campus road network before
+//                 calculating the rest of the route to the destination.
+//
+// ┌─────────────────────────────────────────────────────────┐
+//  Public road  →  GATE_OUTSIDE  →  GATE_INSIDE  →  Campus
+// └─────────────────────────────────────────────────────────┘
+//
+// ⚠️  Calibrate these coordinates on a satellite view of your campus.
+//     GATE_OUTSIDE should sit ~5–10 m before the gate pillar on the road.
+//     GATE_INSIDE  should sit ~10–20 m past the gate pillar inside campus.
+const GATE_OUTSIDE = { latitude: 18.136095, longitude: 74.501313 };
+const GATE_INSIDE  = { latitude: 18.13620,  longitude: 74.50105  };
+
+// Bounding box that defines "on campus".  A point outside this box is treated
+// as an external user who must enter through the gate pair above.
+// Extend or tighten these values to match your real campus perimeter.
+const CAMPUS_BOUNDS = {
+    north: 18.142,   // northernmost building latitude
+    south: 18.135,   // southernmost building latitude
+    east:  74.503,   // easternmost building longitude
+    west:  74.497,   // westernmost building longitude
+};
+
+/**
+ * Returns true when the coordinate is outside the campus bounding box.
+ * Used to decide whether the main gate waypoint must be inserted.
+ * @param {number} lat
+ * @param {number} lng
+ * @returns {boolean}
+ */
+function isOutsideCampus(lat, lng) {
+    return (
+        lat < CAMPUS_BOUNDS.south || lat > CAMPUS_BOUNDS.north ||
+        lng < CAMPUS_BOUNDS.west  || lng > CAMPUS_BOUNDS.east
+    );
+}
+
 // ============================================================
 // LANGUAGES  (English / Marathi / Hindi)
 // ============================================================
@@ -496,6 +542,7 @@ const CAT = {
 let map, streetTile, satTile;
 let markersLayer, routeLayer, destMarker;
 let lastMileLayer           = null;   // dashed connector: last OSRM point → exact building pin
+let gateMarker              = null;   // orange badge shown at Main Gate for outside-campus routes
 let autoFollow              = true;   // user can turn off auto-pan by dragging map
 let routeCoords             = [];     // full route coordinate array for progress trimming
 let passedIndex             = 0;      // how many coords the user has already passed
@@ -1026,14 +1073,48 @@ async function drawRoute(from, to, building) {
         document.querySelector('.cancel-dir-btn').textContent  = t('cancelRoute');
     }
 
+    // ── Decide routing strategy ────────────────────────────────────────────
+    // Outside campus → 4 waypoints: user → GATE_OUTSIDE → GATE_INSIDE → dest
+    // Inside  campus → 2 waypoints: user → dest  (direct, no gate)
+    //
+    // Why two gate points?
+    // A single gate waypoint causes OSRM to touch the gate then immediately
+    // U-turn back onto the public road toward the destination (because the
+    // destination is on the campus road network and the nearest mapped road
+    // from a single gate point is back on the public street).
+    // GATE_INSIDE, a few metres inside the campus threshold, commits OSRM to
+    // the campus road network before it calculates the final leg.
+    const viaGate = isOutsideCampus(from.latitude, from.longitude);
+
+    // ── Build the OSRM waypoint coordinate string ──────────────────────────
+    // OSRM format: lng,lat;lng,lat;...
+    const waypointStr = viaGate
+        ? [
+            `${from.longitude},${from.latitude}`,
+            `${GATE_OUTSIDE.longitude},${GATE_OUTSIDE.latitude}`,
+            `${GATE_INSIDE.longitude},${GATE_INSIDE.latitude}`,
+            `${to.longitude},${to.latitude}`,
+          ].join(';')
+        : `${from.longitude},${from.latitude};${to.longitude},${to.latitude}`;
+
+    // Snap-radius string — one value per waypoint.
+    // Gate points use 'unlimited' so OSRM always anchors to the exact
+    // coordinates even if OSM has no mapped path right at the gate posts.
+    // User and destination use progressive radii (the existing strategy).
+    const snapRadii = viaGate
+        ? [
+            '50;unlimited;unlimited;50',
+            '200;unlimited;unlimited;200',
+            '500;unlimited;unlimited;500',
+            'unlimited;unlimited;unlimited;unlimited',
+          ]
+        : ['50;50', '200;200', '500;500', 'unlimited;unlimited'];
+
     // ── Call OSRM with progressive snap radii ──────────────────────────────
-    // Larger radii handle destinations that are slightly off mapped footpaths
-    // (common for campus buildings set back from roads in OSM).
-    const snapRadii = ['50;50', '200;200', '500;500', 'unlimited;unlimited'];
     let data = null;
     for (const r of snapRadii) {
         try {
-            const url = `${OSRM}${from.longitude},${from.latitude};${to.longitude},${to.latitude}`
+            const url = `${OSRM}${waypointStr}`
                       + `?overview=full&geometries=geojson&steps=true&continue_straight=false&radiuses=${r}`;
             const res = await fetch(url);
             const d   = await res.json();
@@ -1042,23 +1123,30 @@ async function drawRoute(from, to, building) {
     }
 
     if (!data) {
-        // OSRM unavailable — show a straight-line fallback with a clear note
         drawStraightLineRoute(from, to, building);
         return;
     }
 
     // ── Sanity check ───────────────────────────────────────────────────────
-    // If OSRM's routed distance is more than 5× the straight-line distance
-    // the snap radius caught a road that is far off-campus (common for campuses
-    // that are not fully mapped as footpaths in OSM).  Reject the bad route and
-    // use the straight-line fallback which always points correctly to the pin.
-    const straightLineM = haversineM(from.latitude, from.longitude, to.latitude, to.longitude);
-    const osrmDistM     = data.routes[0].distance;
-    const MAX_RATIO     = 5;   // allow up to 5× detour (e.g. walking around a fence is fine)
-    const MAX_ABSOLUTE  = Math.max(straightLineM * MAX_RATIO, 2000); // never reject routes < 2 km regardless
+    // Compute the minimum plausible walk distance for each routing mode:
+    //   Outside: user→GATE_OUTSIDE + GATE_OUTSIDE→GATE_INSIDE + GATE_INSIDE→dest
+    //   Inside:  user→dest  (straight line)
+    // Reject the OSRM response if it is > 5× this floor (snapped to a road
+    // hundreds of km away).
+    const straightLineM = viaGate
+        ? haversineM(from.latitude,         from.longitude,
+                     GATE_OUTSIDE.latitude, GATE_OUTSIDE.longitude)
+          + haversineM(GATE_OUTSIDE.latitude, GATE_OUTSIDE.longitude,
+                       GATE_INSIDE.latitude,  GATE_INSIDE.longitude)
+          + haversineM(GATE_INSIDE.latitude,  GATE_INSIDE.longitude,
+                       to.latitude,           to.longitude)
+        : haversineM(from.latitude, from.longitude, to.latitude, to.longitude);
+
+    const osrmDistM    = data.routes[0].distance;
+    const MAX_ABSOLUTE = Math.max(straightLineM * 5, 2000); // 5× or 2 km floor
 
     if (osrmDistM > MAX_ABSOLUTE) {
-        console.warn(`OSRM route rejected: ${Math.round(osrmDistM)}m vs ${Math.round(straightLineM)}m straight-line. Using direct fallback.`);
+        console.warn(`OSRM route rejected: ${Math.round(osrmDistM)}m vs ${Math.round(straightLineM)}m floor. Falling back.`);
         drawStraightLineRoute(from, to, building);
         return;
     }
@@ -1066,22 +1154,52 @@ async function drawRoute(from, to, building) {
     // ── Render OSRM route ──────────────────────────────────────────────────
     try {
         const route = data.routes[0];
-        const legs  = route.legs[0];
+
+        // allLegs:  outside → 3 legs (user→gateOut, gateOut→gateIn, gateIn→dest)
+        //           inside  → 1 leg  (user→dest)
+        const allLegs = route.legs;
 
         // Convert GeoJSON [lng, lat] → Leaflet [lat, lng]
         let coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
 
-        // Snap first point to exact user position if OSRM snapped it elsewhere
+        // Snap first coordinate to exact user GPS position if OSRM moved it
         if (haversineM(from.latitude, from.longitude, coords[0][0], coords[0][1]) > 5)
             coords = [[from.latitude, from.longitude], ...coords];
 
         const layer = polyDraw(coords);
         activateLayer(layer, coords);
 
+        // ── Gate waypoint badge ────────────────────────────────────────────
+        // Place the orange "🚪 Main Gate" badge at GATE_OUTSIDE — the visible
+        // landmark the user approaches first from the road.
+        if (gateMarker) { map.removeLayer(gateMarker); gateMarker = null; }
+        if (viaGate) {
+            const gateIcon = L.divIcon({
+                html: `<div style="
+                    background: #FF6B00; color: #fff;
+                    font-size: 11px; font-weight: 700;
+                    padding: 5px 11px; border-radius: 20px;
+                    white-space: nowrap; border: 2px solid #fff;
+                    box-shadow: 0 2px 10px rgba(0,0,0,.55);
+                    transform: translateX(-50%);
+                    font-family: inherit;">🚪 Main Gate</div>`,
+                className:  '',
+                iconAnchor: [0, 0],
+            });
+            gateMarker = L.marker(
+                [GATE_OUTSIDE.latitude, GATE_OUTSIDE.longitude],
+                { icon: gateIcon, zIndexOffset: 950, interactive: false }
+            ).addTo(map);
+
+            const viaMsg = {
+                en: '🚪 Route via Main Gate (campus entry)',
+                mr: '🚪 मुख्य दरवाज्यातून मार्ग (कॅम्पस प्रवेश)',
+                hi: '🚪 मुख्य गेट से रास्ता (कैंपस प्रवेश)',
+            };
+            toast(viaMsg[currentLang] || viaMsg.en, 'inf');
+        }
+
         // ── Last-mile connector ────────────────────────────────────────────
-        // OSRM stops at the nearest mapped road.  We measure the gap between
-        // the final route point and the exact building pin, then draw a short
-        // dashed connector to close it visually.
         const lastRoutePoint = coords[coords.length - 1];
         const connectorDistM = haversineM(
             lastRoutePoint[0], lastRoutePoint[1],
@@ -1089,13 +1207,19 @@ async function drawRoute(from, to, building) {
         );
         drawLastMileConnector(lastRoutePoint, to);
 
-        // Add connector distance to OSRM distance so stats are accurate
-        const totalDistM    = route.distance + connectorDistM;
-        // Add connector walk-time to OSRM duration (83 m/min = 5 km/h)
+        // ── Flatten all leg steps for the turn-by-turn drawer ─────────────
+        // OSRM inserts a "depart" step at the start of every leg after the
+        // first — strip those duplicates before rendering the step list.
+        const allSteps = allLegs.flatMap((leg, legIdx) =>
+            legIdx === 0 ? leg.steps : leg.steps.filter(s => s.maneuver?.type !== 'depart')
+        );
+
+        // ── Stats ──────────────────────────────────────────────────────────
+        const totalDistM       = route.distance + connectorDistM;
         const totalDurationSec = route.duration + (connectorDistM / 83) * 60;
 
-        showStats(totalDistM, totalDurationSec, legs.steps.length);
-        buildDrawerSteps(legs.steps, building);
+        showStats(totalDistM, totalDurationSec, allSteps.length);
+        buildDrawerSteps(allSteps, building);
         startDirectionArrow(building.coordinates);
 
     } catch (e) {
@@ -1291,6 +1415,8 @@ function clearRoute() {
         map.removeLayer(lastMileLayer);
         lastMileLayer = null;
     }
+    // Remove the gate waypoint badge shown on outside-campus routes
+    if (gateMarker) { map.removeLayer(gateMarker); gateMarker = null; }
     if (destMarker) { map.removeLayer(destMarker); destMarker = null; }
 }
 function showDrawerError() {
