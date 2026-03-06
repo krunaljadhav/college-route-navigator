@@ -4,7 +4,7 @@
       "id": "main_gate",
       "name": "Main Gate",
       "code": "GATE",
-      "icon": "\ud83d\udeaa",
+      "icon": "🚪",
       "description": "Main entrance gate to SVPM campus. Starting point for all campus visits.",
       "coordinates": {
         "latitude": 18.136095,
@@ -25,7 +25,7 @@
       "id": "main_ground",
       "name": "Main Ground",
       "code": "GRD",
-      "icon": "\ud83c\udfdf\ufe0f",
+      "icon": "🏟️",
       "description": "Main open ground used for college events, sports activities and gatherings.",
       "coordinates": {
         "latitude": 18.136468,
@@ -39,13 +39,31 @@
         "Open Ground",
         "Event Space"
       ],
-      "image": "/static/images/main_ground.jpg"
+      "image": "/static/images/main_ground.jpg",
+      "campus_path": [
+        {
+          "latitude": 18.13615,
+          "longitude": 74.501
+        },
+        {
+          "latitude": 18.1363,
+          "longitude": 74.5006
+        },
+        {
+          "latitude": 18.1365,
+          "longitude": 74.5002
+        },
+        {
+          "latitude": 18.1367,
+          "longitude": 74.4999
+        }
+      ]
     },
     {
       "id": "garden_area",
       "name": "Garden Area",
       "code": "GDN",
-      "icon": "\ud83c\udf3f",
+      "icon": "🌿",
       "description": "Scenic garden area on campus, great for relaxation and outdoor study sessions.",
       "coordinates": {
         "latitude": 18.137246,
@@ -60,13 +78,39 @@
         "Green Space",
         "Walking Path"
       ],
-      "image": "/static/images/garden_area.jpg"
+      "image": "/static/images/garden_area.jpg",
+      "campus_path": [
+        {
+          "latitude": 18.13615,
+          "longitude": 74.501
+        },
+        {
+          "latitude": 18.1363,
+          "longitude": 74.5006
+        },
+        {
+          "latitude": 18.1365,
+          "longitude": 74.5002
+        },
+        {
+          "latitude": 18.1367,
+          "longitude": 74.4999
+        },
+        {
+          "latitude": 18.137,
+          "longitude": 74.4997
+        },
+        {
+          "latitude": 18.1373,
+          "longitude": 74.4995
+        }
+      ]
     },
     {
       "id": "auditorium",
       "name": "Auditorium",
       "code": "AUD",
-      "icon": "\ud83c\udfad",
+      "icon": "🎭",
       "description": "Main auditorium for college events, seminars, cultural programs and convocations.",
       "coordinates": {
         "latitude": 18.136945,
@@ -84,13 +128,43 @@
         "Lighting",
         "AC"
       ],
-      "image": "/static/images/auditorium.jpg"
+      "image": "/static/images/auditorium.jpg",
+      "campus_path": [
+        {
+          "latitude": 18.13615,
+          "longitude": 74.501
+        },
+        {
+          "latitude": 18.1363,
+          "longitude": 74.5006
+        },
+        {
+          "latitude": 18.1365,
+          "longitude": 74.5002
+        },
+        {
+          "latitude": 18.1367,
+          "longitude": 74.4999
+        },
+        {
+          "latitude": 18.1368,
+          "longitude": 74.4994
+        },
+        {
+          "latitude": 18.1369,
+          "longitude": 74.499
+        },
+        {
+          "latitude": 18.1369,
+          "longitude": 74.4986
+        }
+      ]
     },
     {
       "id": "hostel_gate",
       "name": "Hostel Gate",
       "code": "HG",
-      "icon": "\ud83d\udd10",
+      "icon": "🔐",
       "description": "Entry gate to the hostel area. Security check point for hostel residents.",
       "coordinates": {
         "latitude": 18.136921,
@@ -110,7 +184,7 @@
       "id": "rajmata_hostel",
       "name": "Rajmata Jijau Girls Hostel",
       "code": "RJH",
-      "icon": "\ud83c\udfe0",
+      "icon": "🏠",
       "description": "Girls hostel named after Rajmata Jijau. Residential facility for female students.",
       "coordinates": {
         "latitude": 18.136613,
@@ -128,13 +202,55 @@
         "Mess",
         "Laundry"
       ],
-      "image": "/static/images/rajmata_hostel.jpg"
+      "image": "/static/images/rajmata_hostel.jpg",
+      "campus_path": [
+        {
+          "latitude": 18.13615,
+          "longitude": 74.501
+        },
+        {
+          "latitude": 18.1363,
+          "longitude": 74.5006
+        },
+        {
+          "latitude": 18.1365,
+          "longitude": 74.5002
+        },
+        {
+          "latitude": 18.1367,
+          "longitude": 74.4999
+        },
+        {
+          "latitude": 18.1368,
+          "longitude": 74.4994
+        },
+        {
+          "latitude": 18.1369,
+          "longitude": 74.499
+        },
+        {
+          "latitude": 18.1369,
+          "longitude": 74.4986
+        },
+        {
+          "latitude": 18.136921,
+          "longitude": 74.498305
+        },
+        {
+          "latitude": 18.1368,
+          "longitude": 74.498
+        },
+        {
+          "latitude": 18.1367,
+          "longitude": 74.4977
+        }
+      ]
     },
     {
       "id": "savitribai_hostel",
       "name": "Savitribai Phule Girls Hostel",
       "code": "SPH",
-      "icon": "\ud83c\udfe0",
+      "icon": "🏠",
       "description": "Girls hostel named after Savitribai Phule. Modern residential facility for female students.",
       "coordinates": {
         "latitude": 18.136823,
@@ -151,13 +267,63 @@
         "Study Hall",
         "WiFi"
       ],
-      "image": "/static/images/savitribai_hostel.jpg"
+      "image": "/static/images/savitribai_hostel.jpg",
+      "campus_path": [
+        {
+          "latitude": 18.13615,
+          "longitude": 74.501
+        },
+        {
+          "latitude": 18.1363,
+          "longitude": 74.5006
+        },
+        {
+          "latitude": 18.1365,
+          "longitude": 74.5002
+        },
+        {
+          "latitude": 18.1367,
+          "longitude": 74.4999
+        },
+        {
+          "latitude": 18.1368,
+          "longitude": 74.4994
+        },
+        {
+          "latitude": 18.1369,
+          "longitude": 74.499
+        },
+        {
+          "latitude": 18.1369,
+          "longitude": 74.4986
+        },
+        {
+          "latitude": 18.136921,
+          "longitude": 74.498305
+        },
+        {
+          "latitude": 18.1368,
+          "longitude": 74.498
+        },
+        {
+          "latitude": 18.1367,
+          "longitude": 74.4977
+        },
+        {
+          "latitude": 18.1368,
+          "longitude": 74.4972
+        },
+        {
+          "latitude": 18.1367,
+          "longitude": 74.4969
+        }
+      ]
     },
     {
       "id": "ahilyadevi_hostel",
       "name": "Ahilyadevi Girls Hostel",
       "code": "AGH",
-      "icon": "\ud83c\udfe0",
+      "icon": "🏠",
       "description": "Girls hostel named after Ahilyadevi. Comfortable residential facility for female students.",
       "coordinates": {
         "latitude": 18.136615,
@@ -174,13 +340,63 @@
         "Study Hall",
         "WiFi"
       ],
-      "image": "/static/images/ahilyadevi_hostel.jpg"
+      "image": "/static/images/ahilyadevi_hostel.jpg",
+      "campus_path": [
+        {
+          "latitude": 18.13615,
+          "longitude": 74.501
+        },
+        {
+          "latitude": 18.1363,
+          "longitude": 74.5006
+        },
+        {
+          "latitude": 18.1365,
+          "longitude": 74.5002
+        },
+        {
+          "latitude": 18.1367,
+          "longitude": 74.4999
+        },
+        {
+          "latitude": 18.1368,
+          "longitude": 74.4994
+        },
+        {
+          "latitude": 18.1369,
+          "longitude": 74.499
+        },
+        {
+          "latitude": 18.1369,
+          "longitude": 74.4986
+        },
+        {
+          "latitude": 18.136921,
+          "longitude": 74.498305
+        },
+        {
+          "latitude": 18.1368,
+          "longitude": 74.498
+        },
+        {
+          "latitude": 18.1367,
+          "longitude": 74.4977
+        },
+        {
+          "latitude": 18.1368,
+          "longitude": 74.4972
+        },
+        {
+          "latitude": 18.1367,
+          "longitude": 74.4969
+        }
+      ]
     },
     {
       "id": "girls_gym",
       "name": "Girls Gym Court",
       "code": "GGC",
-      "icon": "\ud83c\udfcb\ufe0f",
+      "icon": "🏋️",
       "description": "Dedicated gym and sports court facility for female students.",
       "coordinates": {
         "latitude": 18.137164,
@@ -195,13 +411,59 @@
         "Sports Court",
         "Changing Rooms"
       ],
-      "image": "/static/images/girls_gym.jpg"
+      "image": "/static/images/girls_gym.jpg",
+      "campus_path": [
+        {
+          "latitude": 18.13615,
+          "longitude": 74.501
+        },
+        {
+          "latitude": 18.1363,
+          "longitude": 74.5006
+        },
+        {
+          "latitude": 18.1365,
+          "longitude": 74.5002
+        },
+        {
+          "latitude": 18.1367,
+          "longitude": 74.4999
+        },
+        {
+          "latitude": 18.1368,
+          "longitude": 74.4994
+        },
+        {
+          "latitude": 18.1369,
+          "longitude": 74.499
+        },
+        {
+          "latitude": 18.1369,
+          "longitude": 74.4986
+        },
+        {
+          "latitude": 18.137,
+          "longitude": 74.4986
+        },
+        {
+          "latitude": 18.1371,
+          "longitude": 74.4981
+        },
+        {
+          "latitude": 18.1372,
+          "longitude": 74.4977
+        },
+        {
+          "latitude": 18.1372,
+          "longitude": 74.4975
+        }
+      ]
     },
     {
       "id": "girls_mess",
       "name": "Chetana & SVPM's Girls Mess",
       "code": "GM",
-      "icon": "\ud83c\udf7d\ufe0f",
+      "icon": "🍽️",
       "description": "Main dining facility for female students offering breakfast, lunch and dinner.",
       "coordinates": {
         "latitude": 18.137118,
@@ -216,13 +478,55 @@
         "Kitchen",
         "Seating Area"
       ],
-      "image": "/static/images/girls_mess.jpg"
+      "image": "/static/images/girls_mess.jpg",
+      "campus_path": [
+        {
+          "latitude": 18.13615,
+          "longitude": 74.501
+        },
+        {
+          "latitude": 18.1363,
+          "longitude": 74.5006
+        },
+        {
+          "latitude": 18.1365,
+          "longitude": 74.5002
+        },
+        {
+          "latitude": 18.1367,
+          "longitude": 74.4999
+        },
+        {
+          "latitude": 18.1368,
+          "longitude": 74.4994
+        },
+        {
+          "latitude": 18.1369,
+          "longitude": 74.499
+        },
+        {
+          "latitude": 18.1369,
+          "longitude": 74.4986
+        },
+        {
+          "latitude": 18.137,
+          "longitude": 74.4986
+        },
+        {
+          "latitude": 18.1371,
+          "longitude": 74.4981
+        },
+        {
+          "latitude": 18.1372,
+          "longitude": 74.4977
+        }
+      ]
     },
     {
       "id": "pharmacy_college",
       "name": "SVPM College of Pharmacy",
       "code": "PHARM",
-      "icon": "\ud83d\udc8a",
+      "icon": "💊",
       "description": "SVPM College of Pharmacy offering undergraduate and postgraduate pharmacy programs.",
       "coordinates": {
         "latitude": 18.137413,
@@ -241,13 +545,39 @@
         "Classrooms",
         "Research Center"
       ],
-      "image": "/static/images/pharmacy_college.jpg"
+      "image": "/static/images/pharmacy_college.jpg",
+      "campus_path": [
+        {
+          "latitude": 18.13615,
+          "longitude": 74.501
+        },
+        {
+          "latitude": 18.1363,
+          "longitude": 74.5006
+        },
+        {
+          "latitude": 18.1365,
+          "longitude": 74.5002
+        },
+        {
+          "latitude": 18.1367,
+          "longitude": 74.4999
+        },
+        {
+          "latitude": 18.137,
+          "longitude": 74.4997
+        },
+        {
+          "latitude": 18.1373,
+          "longitude": 74.4995
+        }
+      ]
     },
     {
       "id": "ground",
       "name": "Play Ground Near Pharmacy College",
       "code": "GRD2",
-      "icon": "\u26bd",
+      "icon": "⚽",
       "description": "Sports ground for outdoor games and physical activities.",
       "coordinates": {
         "latitude": 18.137423,
@@ -262,13 +592,47 @@
         "Football",
         "Athletics"
       ],
-      "image": "/static/images/ground.jpg"
+      "image": "/static/images/ground.jpg",
+      "campus_path": [
+        {
+          "latitude": 18.13615,
+          "longitude": 74.501
+        },
+        {
+          "latitude": 18.1363,
+          "longitude": 74.5006
+        },
+        {
+          "latitude": 18.1365,
+          "longitude": 74.5002
+        },
+        {
+          "latitude": 18.1367,
+          "longitude": 74.4999
+        },
+        {
+          "latitude": 18.137,
+          "longitude": 74.4997
+        },
+        {
+          "latitude": 18.1373,
+          "longitude": 74.4995
+        },
+        {
+          "latitude": 18.1378,
+          "longitude": 74.4989
+        },
+        {
+          "latitude": 18.1381,
+          "longitude": 74.4986
+        }
+      ]
     },
     {
       "id": "diploma_engineering",
       "name": "Diploma College of Engineering",
       "code": "DCE",
-      "icon": "\ud83d\udd27",
+      "icon": "🔧",
       "description": "Diploma Engineering college offering polytechnic programs in various engineering streams.",
       "coordinates": {
         "latitude": 18.138617,
@@ -287,13 +651,51 @@
         "Drawing Hall",
         "Library"
       ],
-      "image": "/static/images/diploma_engineering.jpg"
+      "image": "/static/images/diploma_engineering.jpg",
+      "campus_path": [
+        {
+          "latitude": 18.13615,
+          "longitude": 74.501
+        },
+        {
+          "latitude": 18.1363,
+          "longitude": 74.5006
+        },
+        {
+          "latitude": 18.1365,
+          "longitude": 74.5002
+        },
+        {
+          "latitude": 18.1367,
+          "longitude": 74.4999
+        },
+        {
+          "latitude": 18.137,
+          "longitude": 74.4997
+        },
+        {
+          "latitude": 18.1373,
+          "longitude": 74.4995
+        },
+        {
+          "latitude": 18.1377,
+          "longitude": 74.4993
+        },
+        {
+          "latitude": 18.1382,
+          "longitude": 74.4992
+        },
+        {
+          "latitude": 18.1385,
+          "longitude": 74.499
+        }
+      ]
     },
     {
       "id": "workshop",
       "name": "Workshop",
       "code": "WS",
-      "icon": "\u2699\ufe0f",
+      "icon": "⚙️",
       "description": "Engineering workshop for practical training in mechanical, electrical and fabrication work.",
       "coordinates": {
         "latitude": 18.138059,
@@ -310,13 +712,51 @@
         "Fitting Section",
         "Carpentry"
       ],
-      "image": "/static/images/workshop.jpg"
+      "image": "/static/images/workshop.jpg",
+      "campus_path": [
+        {
+          "latitude": 18.13615,
+          "longitude": 74.501
+        },
+        {
+          "latitude": 18.1363,
+          "longitude": 74.5006
+        },
+        {
+          "latitude": 18.1365,
+          "longitude": 74.5002
+        },
+        {
+          "latitude": 18.1367,
+          "longitude": 74.4999
+        },
+        {
+          "latitude": 18.137,
+          "longitude": 74.4997
+        },
+        {
+          "latitude": 18.1373,
+          "longitude": 74.4995
+        },
+        {
+          "latitude": 18.1377,
+          "longitude": 74.4993
+        },
+        {
+          "latitude": 18.1378,
+          "longitude": 74.4989
+        },
+        {
+          "latitude": 18.1381,
+          "longitude": 74.4986
+        }
+      ]
     },
     {
       "id": "canteen",
       "name": "Canteen",
       "code": "CAN",
-      "icon": "\ud83c\udf5c",
+      "icon": "🍜",
       "description": "Main college canteen serving food and beverages for all students and staff.",
       "coordinates": {
         "latitude": 18.138667,
@@ -332,13 +772,59 @@
         "Snacks",
         "Beverages"
       ],
-      "image": "/static/images/canteen.jpg"
+      "image": "/static/images/canteen.jpg",
+      "campus_path": [
+        {
+          "latitude": 18.13615,
+          "longitude": 74.501
+        },
+        {
+          "latitude": 18.1363,
+          "longitude": 74.5006
+        },
+        {
+          "latitude": 18.1365,
+          "longitude": 74.5002
+        },
+        {
+          "latitude": 18.1367,
+          "longitude": 74.4999
+        },
+        {
+          "latitude": 18.137,
+          "longitude": 74.4997
+        },
+        {
+          "latitude": 18.1373,
+          "longitude": 74.4995
+        },
+        {
+          "latitude": 18.1377,
+          "longitude": 74.4993
+        },
+        {
+          "latitude": 18.1378,
+          "longitude": 74.4989
+        },
+        {
+          "latitude": 18.1381,
+          "longitude": 74.4986
+        },
+        {
+          "latitude": 18.1384,
+          "longitude": 74.4984
+        },
+        {
+          "latitude": 18.1387,
+          "longitude": 74.4984
+        }
+      ]
     },
     {
       "id": "engineering_college",
       "name": "College of Engineering",
       "code": "COE",
-      "icon": "\ud83c\udfdb\ufe0f",
+      "icon": "🏛️",
       "description": "SVPM College of Engineering - main engineering building with state-of-the-art labs and classrooms.",
       "coordinates": {
         "latitude": 18.139469,
@@ -359,13 +845,59 @@
         "Project Lab",
         "Library"
       ],
-      "image": "/static/images/engineering_college.jpg"
+      "image": "/static/images/engineering_college.jpg",
+      "campus_path": [
+        {
+          "latitude": 18.13615,
+          "longitude": 74.501
+        },
+        {
+          "latitude": 18.1363,
+          "longitude": 74.5006
+        },
+        {
+          "latitude": 18.1365,
+          "longitude": 74.5002
+        },
+        {
+          "latitude": 18.1367,
+          "longitude": 74.4999
+        },
+        {
+          "latitude": 18.137,
+          "longitude": 74.4997
+        },
+        {
+          "latitude": 18.1373,
+          "longitude": 74.4995
+        },
+        {
+          "latitude": 18.1377,
+          "longitude": 74.4993
+        },
+        {
+          "latitude": 18.1382,
+          "longitude": 74.4992
+        },
+        {
+          "latitude": 18.1385,
+          "longitude": 74.499
+        },
+        {
+          "latitude": 18.1389,
+          "longitude": 74.4988
+        },
+        {
+          "latitude": 18.1393,
+          "longitude": 74.4987
+        }
+      ]
     },
     {
       "id": "play_ground",
       "name": "Play Ground Near Boys Hostel",
       "code": "PG",
-      "icon": "\ud83c\udfc3",
+      "icon": "🏃",
       "description": "Large outdoor play ground for cricket, football and other sports activities.",
       "coordinates": {
         "latitude": 18.138908,
@@ -380,13 +912,59 @@
         "Football Field",
         "Running Track"
       ],
-      "image": "/static/images/play_ground.jpg"
+      "image": "/static/images/play_ground.jpg",
+      "campus_path": [
+        {
+          "latitude": 18.13615,
+          "longitude": 74.501
+        },
+        {
+          "latitude": 18.1363,
+          "longitude": 74.5006
+        },
+        {
+          "latitude": 18.1365,
+          "longitude": 74.5002
+        },
+        {
+          "latitude": 18.1367,
+          "longitude": 74.4999
+        },
+        {
+          "latitude": 18.137,
+          "longitude": 74.4997
+        },
+        {
+          "latitude": 18.1373,
+          "longitude": 74.4995
+        },
+        {
+          "latitude": 18.1377,
+          "longitude": 74.4993
+        },
+        {
+          "latitude": 18.1378,
+          "longitude": 74.4989
+        },
+        {
+          "latitude": 18.1381,
+          "longitude": 74.4986
+        },
+        {
+          "latitude": 18.1384,
+          "longitude": 74.4984
+        },
+        {
+          "latitude": 18.139,
+          "longitude": 74.4982
+        }
+      ]
     },
     {
       "id": "basketball_court",
       "name": "Basketball Court",
       "code": "BBC",
-      "icon": "\ud83c\udfc0",
+      "icon": "🏀",
       "description": "Outdoor basketball court for students to practice and compete.",
       "coordinates": {
         "latitude": 18.139409,
@@ -401,13 +979,67 @@
         "Marked Court",
         "Spectator Area"
       ],
-      "image": "/static/images/basketball_court.jpg"
+      "image": "/static/images/basketball_court.jpg",
+      "campus_path": [
+        {
+          "latitude": 18.13615,
+          "longitude": 74.501
+        },
+        {
+          "latitude": 18.1363,
+          "longitude": 74.5006
+        },
+        {
+          "latitude": 18.1365,
+          "longitude": 74.5002
+        },
+        {
+          "latitude": 18.1367,
+          "longitude": 74.4999
+        },
+        {
+          "latitude": 18.137,
+          "longitude": 74.4997
+        },
+        {
+          "latitude": 18.1373,
+          "longitude": 74.4995
+        },
+        {
+          "latitude": 18.1377,
+          "longitude": 74.4993
+        },
+        {
+          "latitude": 18.1378,
+          "longitude": 74.4989
+        },
+        {
+          "latitude": 18.1381,
+          "longitude": 74.4986
+        },
+        {
+          "latitude": 18.1384,
+          "longitude": 74.4984
+        },
+        {
+          "latitude": 18.139,
+          "longitude": 74.4982
+        },
+        {
+          "latitude": 18.1391,
+          "longitude": 74.498
+        },
+        {
+          "latitude": 18.139,
+          "longitude": 74.4979
+        }
+      ]
     },
     {
       "id": "boys_hostel",
       "name": "Boys Hostel",
       "code": "BH",
-      "icon": "\ud83c\udfe2",
+      "icon": "🏢",
       "description": "Residential hostel facility for male students with all basic amenities.",
       "coordinates": {
         "latitude": 18.139063,
@@ -425,13 +1057,67 @@
         "WiFi",
         "Laundry"
       ],
-      "image": "/static/images/boys_hostel.jpg"
+      "image": "/static/images/boys_hostel.jpg",
+      "campus_path": [
+        {
+          "latitude": 18.13615,
+          "longitude": 74.501
+        },
+        {
+          "latitude": 18.1363,
+          "longitude": 74.5006
+        },
+        {
+          "latitude": 18.1365,
+          "longitude": 74.5002
+        },
+        {
+          "latitude": 18.1367,
+          "longitude": 74.4999
+        },
+        {
+          "latitude": 18.137,
+          "longitude": 74.4997
+        },
+        {
+          "latitude": 18.1373,
+          "longitude": 74.4995
+        },
+        {
+          "latitude": 18.1377,
+          "longitude": 74.4993
+        },
+        {
+          "latitude": 18.1378,
+          "longitude": 74.4989
+        },
+        {
+          "latitude": 18.1381,
+          "longitude": 74.4986
+        },
+        {
+          "latitude": 18.1384,
+          "longitude": 74.4984
+        },
+        {
+          "latitude": 18.139,
+          "longitude": 74.4982
+        },
+        {
+          "latitude": 18.1391,
+          "longitude": 74.498
+        },
+        {
+          "latitude": 18.139,
+          "longitude": 74.4979
+        }
+      ]
     },
     {
       "id": "shree_mess",
       "name": "Sanskruti Mess",
       "code": "SM",
-      "icon": "\ud83c\udf5b",
+      "icon": "🍛",
       "description": "Shree Mess serving home-style meals to students. Breakfast, lunch and dinner available.",
       "coordinates": {
         "latitude": 18.138808,
@@ -446,13 +1132,63 @@
         "Kitchen",
         "Thali Service"
       ],
-      "image": "/static/images/shree_mess.jpg"
+      "image": "/static/images/shree_mess.jpg",
+      "campus_path": [
+        {
+          "latitude": 18.13615,
+          "longitude": 74.501
+        },
+        {
+          "latitude": 18.1363,
+          "longitude": 74.5006
+        },
+        {
+          "latitude": 18.1365,
+          "longitude": 74.5002
+        },
+        {
+          "latitude": 18.1367,
+          "longitude": 74.4999
+        },
+        {
+          "latitude": 18.137,
+          "longitude": 74.4997
+        },
+        {
+          "latitude": 18.1373,
+          "longitude": 74.4995
+        },
+        {
+          "latitude": 18.1377,
+          "longitude": 74.4993
+        },
+        {
+          "latitude": 18.1378,
+          "longitude": 74.4989
+        },
+        {
+          "latitude": 18.1381,
+          "longitude": 74.4986
+        },
+        {
+          "latitude": 18.1384,
+          "longitude": 74.4984
+        },
+        {
+          "latitude": 18.1387,
+          "longitude": 74.4984
+        },
+        {
+          "latitude": 18.1388,
+          "longitude": 74.4975
+        }
+      ]
     },
     {
       "id": "coutegess",
       "name": "Courtess Area",
       "code": "CTG",
-      "icon": "\ud83c\udfd8\ufe0f",
+      "icon": "🏘️",
       "description": "Cottages area on campus providing accommodation and facilities.",
       "coordinates": {
         "latitude": 18.138717,
@@ -466,13 +1202,67 @@
         "Accommodation",
         "Common Area"
       ],
-      "image": "/static/images/coutegess.jpg"
+      "image": "/static/images/coutegess.jpg",
+      "campus_path": [
+        {
+          "latitude": 18.13615,
+          "longitude": 74.501
+        },
+        {
+          "latitude": 18.1363,
+          "longitude": 74.5006
+        },
+        {
+          "latitude": 18.1365,
+          "longitude": 74.5002
+        },
+        {
+          "latitude": 18.1367,
+          "longitude": 74.4999
+        },
+        {
+          "latitude": 18.137,
+          "longitude": 74.4997
+        },
+        {
+          "latitude": 18.1373,
+          "longitude": 74.4995
+        },
+        {
+          "latitude": 18.1377,
+          "longitude": 74.4993
+        },
+        {
+          "latitude": 18.1378,
+          "longitude": 74.4989
+        },
+        {
+          "latitude": 18.1381,
+          "longitude": 74.4986
+        },
+        {
+          "latitude": 18.1384,
+          "longitude": 74.4984
+        },
+        {
+          "latitude": 18.1387,
+          "longitude": 74.4984
+        },
+        {
+          "latitude": 18.1388,
+          "longitude": 74.4975
+        },
+        {
+          "latitude": 18.1387,
+          "longitude": 74.4969
+        }
+      ]
     },
     {
       "id": "electrical_dept",
       "name": "Electrical Engineering Department SVPM",
       "code": "EED",
-      "icon": "\u26a1",
+      "icon": "⚡",
       "description": "Dedicated Electrical Engineering department building with specialized labs and classrooms.",
       "coordinates": {
         "latitude": 18.140426,
@@ -490,13 +1280,71 @@
         "Simulation Lab",
         "Smart Classrooms"
       ],
-      "image": "/static/images/electrical_dept.jpg"
+      "image": "/static/images/electrical_dept.jpg",
+      "campus_path": [
+        {
+          "latitude": 18.13615,
+          "longitude": 74.501
+        },
+        {
+          "latitude": 18.1363,
+          "longitude": 74.5006
+        },
+        {
+          "latitude": 18.1365,
+          "longitude": 74.5002
+        },
+        {
+          "latitude": 18.1367,
+          "longitude": 74.4999
+        },
+        {
+          "latitude": 18.137,
+          "longitude": 74.4997
+        },
+        {
+          "latitude": 18.1373,
+          "longitude": 74.4995
+        },
+        {
+          "latitude": 18.1377,
+          "longitude": 74.4993
+        },
+        {
+          "latitude": 18.1382,
+          "longitude": 74.4992
+        },
+        {
+          "latitude": 18.1385,
+          "longitude": 74.499
+        },
+        {
+          "latitude": 18.1389,
+          "longitude": 74.4988
+        },
+        {
+          "latitude": 18.1393,
+          "longitude": 74.4987
+        },
+        {
+          "latitude": 18.1397,
+          "longitude": 74.4985
+        },
+        {
+          "latitude": 18.1401,
+          "longitude": 74.4982
+        },
+        {
+          "latitude": 18.1406,
+          "longitude": 74.4979
+        }
+      ]
     },
     {
       "id": "commerce_science",
       "name": "SVPM's College of Commerce, Science & Computer Engineering",
       "code": "CSCE",
-      "icon": "\ud83d\udcbb",
+      "icon": "💻",
       "description": "College offering programs in Commerce, Science and Computer Engineering streams.",
       "coordinates": {
         "latitude": 18.140938,
@@ -517,13 +1365,75 @@
         "Classrooms",
         "Seminar Hall"
       ],
-      "image": "/static/images/commerce_science.jpg"
+      "image": "/static/images/commerce_science.jpg",
+      "campus_path": [
+        {
+          "latitude": 18.13615,
+          "longitude": 74.501
+        },
+        {
+          "latitude": 18.1363,
+          "longitude": 74.5006
+        },
+        {
+          "latitude": 18.1365,
+          "longitude": 74.5002
+        },
+        {
+          "latitude": 18.1367,
+          "longitude": 74.4999
+        },
+        {
+          "latitude": 18.137,
+          "longitude": 74.4997
+        },
+        {
+          "latitude": 18.1373,
+          "longitude": 74.4995
+        },
+        {
+          "latitude": 18.1377,
+          "longitude": 74.4993
+        },
+        {
+          "latitude": 18.1382,
+          "longitude": 74.4992
+        },
+        {
+          "latitude": 18.1385,
+          "longitude": 74.499
+        },
+        {
+          "latitude": 18.1389,
+          "longitude": 74.4988
+        },
+        {
+          "latitude": 18.1393,
+          "longitude": 74.4987
+        },
+        {
+          "latitude": 18.1397,
+          "longitude": 74.4985
+        },
+        {
+          "latitude": 18.1401,
+          "longitude": 74.4982
+        },
+        {
+          "latitude": 18.1406,
+          "longitude": 74.4979
+        },
+        {
+          "latitude": 18.141,
+          "longitude": 74.4975
+        }
+      ]
     },
     {
       "id": "management_gate",
       "name": "Management Gate",
       "code": "MG",
-      "icon": "\ud83d\udea7",
+      "icon": "🚧",
       "description": "Management block entrance gate. Access to management and administrative offices.",
       "coordinates": {
         "latitude": 18.141152,
@@ -545,7 +1455,7 @@
       "id": "xerox_center",
       "name": "Xerox Center",
       "code": "XRX",
-      "icon": "\ud83d\udda8\ufe0f",
+      "icon": "🖨️",
       "description": "Xerox and printing center for students to print notes, assignments and documents.",
       "coordinates": {
         "latitude": 18.138372,
@@ -561,13 +1471,47 @@
         "Binding",
         "Scanning"
       ],
-      "image": "/static/images/xerox_center.jpg"
+      "image": "/static/images/xerox_center.jpg",
+      "campus_path": [
+        {
+          "latitude": 18.13615,
+          "longitude": 74.501
+        },
+        {
+          "latitude": 18.1363,
+          "longitude": 74.5006
+        },
+        {
+          "latitude": 18.1365,
+          "longitude": 74.5002
+        },
+        {
+          "latitude": 18.1367,
+          "longitude": 74.4999
+        },
+        {
+          "latitude": 18.137,
+          "longitude": 74.4997
+        },
+        {
+          "latitude": 18.1373,
+          "longitude": 74.4995
+        },
+        {
+          "latitude": 18.1377,
+          "longitude": 74.4993
+        },
+        {
+          "latitude": 18.1382,
+          "longitude": 74.4992
+        }
+      ]
     },
     {
       "id": "parking_area",
       "name": "Parking Area",
       "code": "PARK",
-      "icon": "\ud83c\udd7f\ufe0f",
+      "icon": "🅿️",
       "description": "Main parking area for students, staff and visitors vehicles.",
       "coordinates": {
         "latitude": 18.138113,
@@ -582,7 +1526,41 @@
         "Four-Wheeler Parking",
         "Security"
       ],
-      "image": "/static/images/parking_area.jpg"
+      "image": "/static/images/parking_area.jpg",
+      "campus_path": [
+        {
+          "latitude": 18.13615,
+          "longitude": 74.501
+        },
+        {
+          "latitude": 18.1363,
+          "longitude": 74.5006
+        },
+        {
+          "latitude": 18.1365,
+          "longitude": 74.5002
+        },
+        {
+          "latitude": 18.1367,
+          "longitude": 74.4999
+        },
+        {
+          "latitude": 18.137,
+          "longitude": 74.4997
+        },
+        {
+          "latitude": 18.1373,
+          "longitude": 74.4995
+        },
+        {
+          "latitude": 18.1377,
+          "longitude": 74.4993
+        },
+        {
+          "latitude": 18.1382,
+          "longitude": 74.4992
+        }
+      ]
     }
   ]
 }

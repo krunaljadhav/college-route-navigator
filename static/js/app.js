@@ -5,6 +5,17 @@
 const OSRM   = 'https://router.project-osrm.org/route/v1/foot/';
 const CENTER = [18.1385, 74.4985];
 
+// ═══════════════════════════════════════════════════════════════════════════
+// ROUTING CONFIGURATION
+// All routes — both inside and outside campus — go through OSRM so they
+// follow real roads and footpaths from OpenStreetMap.
+// The old campus_path arrays in buildings.json are no longer used.
+// ═══════════════════════════════════════════════════════════════════════════
+
+// How far (metres) the user must stray from the current route before
+// automatic recalculation is triggered.
+const OFF_PATH_THRESHOLD = 60;
+
 // ============================================================
 // LANGUAGES  (English / Marathi / Hindi)
 // ============================================================
@@ -484,11 +495,13 @@ const CAT = {
 // ===== STATE =====
 let map, streetTile, satTile;
 let markersLayer, routeLayer, destMarker;
-let autoFollow   = true;   // Fix 2: user can turn off auto-pan by dragging map
-let routeCoords  = [];     // Fix 3: full route coordinate array for progress trimming
-let passedIndex  = 0;      // Fix 3: how many coords the user has already passed
-let currentDest  = null;   // stores destination building object for arrival detection
-let arrivedShown = false;  // prevent showing arrival toast more than once
+let lastMileLayer           = null;   // dashed connector: last OSRM point → exact building pin
+let autoFollow              = true;   // user can turn off auto-pan by dragging map
+let routeCoords             = [];     // full route coordinate array for progress trimming
+let passedIndex             = 0;      // how many coords the user has already passed
+let currentDest             = null;   // stores destination building object for arrival detection
+let arrivedShown            = false;  // prevent showing arrival toast more than once
+let recalculationInProgress = false;  // debounce off-path recalculation
 let buildings     = [];
 let userLocation  = null;
 let userMarker    = null;
@@ -842,11 +855,12 @@ function closeDrawer() {
     const drawer = document.getElementById('dirDrawer');
     drawer.classList.remove('active', 'expanded', 'mini');
     stopDirectionArrow();
-    autoFollow   = true;
-    routeCoords  = [];
-    passedIndex  = 0;
-    currentDest  = null;
-    arrivedShown = false;
+    autoFollow              = true;
+    routeCoords             = [];
+    passedIndex             = 0;
+    currentDest             = null;
+    arrivedShown            = false;
+    recalculationInProgress = false;
     document.getElementById('fabCenter').classList.remove('follow-off');
     document.getElementById('fabSnapToMe').classList.remove('active');
     clearRoute();
@@ -894,10 +908,11 @@ function showArrivalScreen(building) {
 function dismissArrival() {
     document.getElementById('arrivalOverlay').classList.remove('active');
     document.getElementById('fabSnapToMe').classList.remove('active');
-    currentDest  = null;
-    arrivedShown = false;
-    routeCoords  = [];
-    passedIndex  = 0;
+    currentDest             = null;
+    arrivedShown            = false;
+    recalculationInProgress = false;
+    routeCoords             = [];
+    passedIndex             = 0;
     document.getElementById('fabCenter').classList.remove('follow-off');
 }
 
@@ -941,157 +956,154 @@ function launchConfetti() {
     draw();
 }
 
+// ============================================================
+// DRAW ROUTE — unified OSRM routing for ALL destinations
+// Works identically for campus and off-campus routes.
+// OSRM foot profile follows real footpaths and roads from OSM.
+// Falls back to a straight-line indicator if OSRM is unreachable.
+// ============================================================
 async function drawRoute(from, to, building) {
     clearRoute();
-    
-    // ✨ UPGRADED: Beautiful gradient destination pin with drop animation
+
+    // ── Destination pin ────────────────────────────────────────────────────
     const dicon = L.divIcon({
-        html: `
-            <div class="dest-marker-container">
-                <div class="dest-pin"></div>
-                <div class="dest-emoji">${building.icon||'🏢'}</div>
-                <div class="dest-shadow"></div>
-            </div>
-            <style>
-                .dest-marker-container {
-                    width: 50px;
-                    height: 60px;
-                    position: relative;
-                    animation: markerDrop 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-                }
-                @keyframes markerDrop {
-                    0% { transform: translateY(-100px) scale(0); opacity: 0; }
-                    60% { transform: translateY(5px) scale(1.1); }
-                    100% { transform: translateY(0) scale(1); opacity: 1; }
-                }
-                .dest-pin {
-                    position: absolute;
-                    width: 36px;
-                    height: 36px;
-                    background: linear-gradient(135deg, #0066FF 0%, #00D9FF 100%);
-                    border-radius: 50% 50% 50% 0;
-                    transform: rotate(-45deg);
-                    left: 7px;
-                    top: 2px;
-                    border: 3px solid white;
-                    box-shadow: 0 4px 20px rgba(0, 102, 255, 0.6),
-                                0 0 0 4px rgba(0, 102, 255, 0.2);
-                }
-                .dest-emoji {
-                    position: absolute;
-                    font-size: 18px;
-                    left: 16px;
-                    top: 10px;
-                    z-index: 10;
-                    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
-                }
-                .dest-shadow {
-                    position: absolute;
-                    width: 20px;
-                    height: 8px;
-                    background: radial-gradient(ellipse, rgba(0,0,0,0.3) 0%, transparent 70%);
-                    bottom: -5px;
-                    left: 15px;
-                    border-radius: 50%;
-                }
-            </style>`,
-        className:'', 
-        iconSize: [50, 60], 
-        iconAnchor: [25, 55],
+        html:`<div style="position:relative;width:50px;height:60px;animation:markerDrop .5s ease;">
+            <div style="position:absolute;width:36px;height:36px;background:linear-gradient(135deg,#0066FF,#00D9FF);border-radius:50% 50% 50% 0;transform:rotate(-45deg);left:7px;top:2px;border:3px solid #fff;box-shadow:0 4px 20px rgba(0,102,255,.6);"></div>
+            <div style="position:absolute;font-size:18px;left:16px;top:10px;z-index:10;">${building.icon||'🏢'}</div>
+            <style>@keyframes markerDrop{0%{transform:translateY(-80px);opacity:0}100%{transform:translateY(0);opacity:1}}</style>
+        </div>`,
+        className:'', iconSize:[50,60], iconAnchor:[25,55]
     });
-    
     destMarker = L.marker([to.latitude, to.longitude], { icon: dicon, zIndexOffset: 900 }).addTo(map);
 
-    // Try OSRM with increasing snap radii until a route is found
-    // Small radius first (campus paths), then wider to catch nearby roads
-    const snapRadii = ['50;50', '200;200', '500;500', 'unlimited;unlimited'];
-    let data = null;
-    for (const r of snapRadii) {
-        try {
-            const url = `${OSRM}${from.longitude},${from.latitude};${to.longitude},${to.latitude}?overview=full&geometries=geojson&steps=true&continue_straight=false&radiuses=${r}`;
-            const res = await fetch(url);
-            const d   = await res.json();
-            if (d.code === 'Ok' && d.routes?.length) { data = d; break; }
-        } catch (_) { /* try next radius */ }
+    // ── Shared helpers ─────────────────────────────────────────────────────
+    // Draw the animated dual-polyline and return {line, dash, animation}
+    function polyDraw(coords) {
+        const line = L.polyline(coords, { color:'#0066FF', weight:6, opacity:.9, lineCap:'round', lineJoin:'round' }).addTo(map);
+        const dash = L.polyline(coords, { color:'#00D9FF', weight:3, opacity:.8, dashArray:'10,15', dashOffset:'0', lineCap:'round' }).addTo(map);
+        let off = 0;
+        const anim = setInterval(() => { off--; dash.setStyle({ dashOffset: off }); }, 50);
+        return { line, dash, animation: anim };
     }
-    try {
-        if (!data) { drawStraightLineRoute(from, to, building); return; }
-        const route = data.routes[0];
-        const legs  = route.legs[0];
-        const coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
 
-        // ✨ UPGRADED: Thicker route line with smooth caps
-        const line  = L.polyline(coords, { 
-            color: '#0066FF', 
-            weight: 6, 
-            opacity: 0.9,
-            lineCap: 'round',
-            lineJoin: 'round'
-        }).addTo(map);
-        
-        // ✨ UPGRADED: Animated dashed overlay that moves!
-        const dash  = L.polyline(coords, { 
-            color: '#00D9FF', 
-            weight: 3, 
-            opacity: 0.8, 
-            dashArray: '10, 15',
-            dashOffset: '0',
-            lineCap: 'round',
-            lineJoin: 'round'
-        }).addTo(map);
-        
-        // Animate the dashes to create movement effect
-        let dashOffset = 0;
-        const animateDash = setInterval(() => {
-            dashOffset -= 1;
-            dash.setStyle({ dashOffset: dashOffset });
-        }, 50);
-        
-        routeLayer = { line, dash, animation: animateDash };
-        routeCoords  = coords.slice();
-        passedIndex  = 0;
-        autoFollow   = true;
-        currentDest  = building;
-        arrivedShown = false;
-        
-        // Auto-zoom: bottom padding = peek height (178px) + nav bar (68px)
-        setTimeout(() => {
-            map.fitBounds(line.getBounds(), { 
-                paddingTopLeft:     [60, 110],
-                paddingBottomRight: [60, 246],
-                maxZoom: 18,
-                animate: true,
-                duration: 1.0
-            });
-        }, 450);
+    // Wire up navigation state and fit map to route
+    function activateLayer(layer, coords) {
+        routeLayer      = layer;
+        routeCoords     = coords.slice();
+        passedIndex     = 0;
+        autoFollow      = true;
+        currentDest     = building;
+        arrivedShown    = false;
+        setTimeout(() => map.fitBounds(layer.line.getBounds(), {
+            paddingTopLeft: [60, 110], paddingBottomRight: [60, 246],
+            maxZoom: 19, animate: true, duration: 1.0
+        }), 450);
+    }
 
-        // Summary
-        const dist = route.distance >= 1000 ? (route.distance/1000).toFixed(1)+' km' : Math.round(route.distance)+'m';
-        const mins = Math.ceil(route.duration / 60);
-        const time = mins < 60 ? mins+' min' : Math.floor(mins/60)+'h '+(mins%60)+'m';
-        document.getElementById('dDist').textContent  = dist;
-        document.getElementById('dTime').textContent  = time;
-        // Mini-tab stats
-        document.getElementById('miniDist').textContent = dist;
-        document.getElementById('miniTime').textContent = time;
+    // Populate the stats strip in the drawer
+    function showStats(distM, durationSec, stepCount) {
+        const distTx = distM >= 1000 ? (distM / 1000).toFixed(1) + ' km' : Math.round(distM) + 'm';
+        const mins   = Math.ceil(durationSec / 60);
+        const timeTx = mins < 60 ? mins + ' min' : Math.floor(mins / 60) + 'h ' + (mins % 60) + 'm';
         const expandLbls = { en:'expand', mr:'उघडा', hi:'खोलें' };
+
+        document.getElementById('dDist').textContent          = distTx;
+        document.getElementById('dTime').textContent          = timeTx;
+        document.getElementById('dTurns').textContent         = stepCount;
+        document.getElementById('miniDist').textContent       = distTx;
+        document.getElementById('miniTime').textContent       = timeTx;
         document.getElementById('miniExpandLabel').textContent = expandLbls[currentLang] || 'expand';
-        document.getElementById('dTurns').textContent = legs.steps.length;
         document.getElementById('drawerSummary').style.display = 'flex';
         document.getElementById('drawerLoading').style.display = 'none';
         document.getElementById('drawerFooter').style.display  = 'block';
         document.getElementById('drawerHint').style.display    = 'block';
-        // Translated stat labels
+        document.getElementById('drawerHint').textContent      = t('swipeUp');
+
         const lbls = document.querySelectorAll('.dsm-lbl');
         if (lbls[0]) lbls[0].textContent = t('distance');
         if (lbls[1]) lbls[1].textContent = t('walkTime');
         if (lbls[2]) lbls[2].textContent = t('turns');
-        document.querySelector('.cancel-dir-btn').textContent = t('cancelRoute');
+        document.querySelector('.cancel-dir-btn').textContent  = t('cancelRoute');
+    }
 
+    // ── Call OSRM with progressive snap radii ──────────────────────────────
+    // Larger radii handle destinations that are slightly off mapped footpaths
+    // (common for campus buildings set back from roads in OSM).
+    const snapRadii = ['50;50', '200;200', '500;500', 'unlimited;unlimited'];
+    let data = null;
+    for (const r of snapRadii) {
+        try {
+            const url = `${OSRM}${from.longitude},${from.latitude};${to.longitude},${to.latitude}`
+                      + `?overview=full&geometries=geojson&steps=true&continue_straight=false&radiuses=${r}`;
+            const res = await fetch(url);
+            const d   = await res.json();
+            if (d.code === 'Ok' && d.routes?.length) { data = d; break; }
+        } catch (_) { /* network hiccup — try wider snap */ }
+    }
+
+    if (!data) {
+        // OSRM unavailable — show a straight-line fallback with a clear note
+        drawStraightLineRoute(from, to, building);
+        return;
+    }
+
+    // ── Sanity check ───────────────────────────────────────────────────────
+    // If OSRM's routed distance is more than 5× the straight-line distance
+    // the snap radius caught a road that is far off-campus (common for campuses
+    // that are not fully mapped as footpaths in OSM).  Reject the bad route and
+    // use the straight-line fallback which always points correctly to the pin.
+    const straightLineM = haversineM(from.latitude, from.longitude, to.latitude, to.longitude);
+    const osrmDistM     = data.routes[0].distance;
+    const MAX_RATIO     = 5;   // allow up to 5× detour (e.g. walking around a fence is fine)
+    const MAX_ABSOLUTE  = Math.max(straightLineM * MAX_RATIO, 2000); // never reject routes < 2 km regardless
+
+    if (osrmDistM > MAX_ABSOLUTE) {
+        console.warn(`OSRM route rejected: ${Math.round(osrmDistM)}m vs ${Math.round(straightLineM)}m straight-line. Using direct fallback.`);
+        drawStraightLineRoute(from, to, building);
+        return;
+    }
+
+    // ── Render OSRM route ──────────────────────────────────────────────────
+    try {
+        const route = data.routes[0];
+        const legs  = route.legs[0];
+
+        // Convert GeoJSON [lng, lat] → Leaflet [lat, lng]
+        let coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
+
+        // Snap first point to exact user position if OSRM snapped it elsewhere
+        if (haversineM(from.latitude, from.longitude, coords[0][0], coords[0][1]) > 5)
+            coords = [[from.latitude, from.longitude], ...coords];
+
+        const layer = polyDraw(coords);
+        activateLayer(layer, coords);
+
+        // ── Last-mile connector ────────────────────────────────────────────
+        // OSRM stops at the nearest mapped road.  We measure the gap between
+        // the final route point and the exact building pin, then draw a short
+        // dashed connector to close it visually.
+        const lastRoutePoint = coords[coords.length - 1];
+        const connectorDistM = haversineM(
+            lastRoutePoint[0], lastRoutePoint[1],
+            to.latitude,       to.longitude
+        );
+        drawLastMileConnector(lastRoutePoint, to);
+
+        // Add connector distance to OSRM distance so stats are accurate
+        const totalDistM    = route.distance + connectorDistM;
+        // Add connector walk-time to OSRM duration (83 m/min = 5 km/h)
+        const totalDurationSec = route.duration + (connectorDistM / 83) * 60;
+
+        showStats(totalDistM, totalDurationSec, legs.steps.length);
         buildDrawerSteps(legs.steps, building);
+        startDirectionArrow(building.coordinates);
 
-    } catch (e) { console.error(e); drawStraightLineRoute(from, to, building); }
+    } catch (e) {
+        console.error('Route render error:', e);
+        drawStraightLineRoute(from, to, building);
+    }
 }
+
 
 // Fallback when OSRM can't find a walking path — draw a straight dashed line
 function drawStraightLineRoute(from, to, building) {
@@ -1101,12 +1113,12 @@ function drawStraightLineRoute(from, to, building) {
     ];
 
     const line = L.polyline(coords, {
-        color: '#3B82F6', weight: 4, opacity: 0.7,
+        color: '#3B82F6', weight: 5, opacity: 0.85,
         dashArray: '12, 10', lineCap: 'round'
     }).addTo(map);
 
     const dash = L.polyline(coords, {
-        color: '#00D9FF', weight: 2, opacity: 0.6,
+        color: '#00D9FF', weight: 2.5, opacity: 0.7,
         dashArray: '8, 14', dashOffset: '0', lineCap: 'round'
     }).addTo(map);
 
@@ -1121,51 +1133,63 @@ function drawStraightLineRoute(from, to, building) {
     arrivedShown = false;
 
     map.fitBounds(L.latLngBounds(coords), {
-        paddingTopLeft: [60,110], paddingBottomRight: [60,246],
+        paddingTopLeft: [60, 110], paddingBottomRight: [60, 246],
         maxZoom: 18, animate: true, duration: 1.0
     });
 
-    const dist   = haversineM(from.latitude, from.longitude, to.latitude, to.longitude);
-    const distTx = dist >= 1000 ? (dist/1000).toFixed(1)+' km' : Math.round(dist)+'m';
-    const mins   = Math.ceil(dist / 80);
-    const timeTx = mins < 60 ? mins+' min' : Math.floor(mins/60)+'h '+(mins%60)+'m';
+    // Use 83 m/min (5 km/h) walking pace — same as Google Maps foot routing
+    const dist    = haversineM(from.latitude, from.longitude, to.latitude, to.longitude);
+    const distTx  = dist >= 1000 ? (dist / 1000).toFixed(1) + ' km' : Math.round(dist) + 'm';
+    const mins    = Math.max(1, Math.ceil(dist / 83));
+    const timeTx  = mins < 60 ? mins + ' min' : Math.floor(mins / 60) + 'h ' + (mins % 60) + 'm';
+    const expandLbls = { en: 'expand', mr: 'उघडा', hi: 'खोलें' };
 
-    document.getElementById('dDist').textContent  = distTx;
-    document.getElementById('dTime').textContent  = timeTx;
-    document.getElementById('dTurns').textContent = '—';
-    document.getElementById('miniDist').textContent = distTx;
-    document.getElementById('miniTime').textContent = timeTx;
-    document.getElementById('drawerSummary').style.display = 'flex';
-    document.getElementById('drawerLoading').style.display = 'none';
-    document.getElementById('drawerError').style.display   = 'none';
-    document.getElementById('drawerFooter').style.display  = 'block';
-    document.getElementById('drawerHint').style.display    = 'block';
-    document.getElementById('drawerHint').textContent      = t('swipeUp');
+    document.getElementById('dDist').textContent            = distTx;
+    document.getElementById('dTime').textContent            = timeTx;
+    document.getElementById('dTurns').textContent           = '—';
+    document.getElementById('miniDist').textContent         = distTx;
+    document.getElementById('miniTime').textContent         = timeTx;
+    document.getElementById('miniExpandLabel').textContent  = expandLbls[currentLang] || 'expand';
+    document.getElementById('drawerSummary').style.display  = 'flex';
+    document.getElementById('drawerLoading').style.display  = 'none';
+    document.getElementById('drawerError').style.display    = 'none';
+    document.getElementById('drawerFooter').style.display   = 'block';
+    document.getElementById('drawerHint').style.display     = 'block';
+    document.getElementById('drawerHint').textContent       = t('swipeUp');
 
     const lbls = document.querySelectorAll('.dsm-lbl');
     if (lbls[0]) lbls[0].textContent = t('distance');
     if (lbls[1]) lbls[1].textContent = t('walkTime');
     if (lbls[2]) lbls[2].textContent = t('turns');
+    document.querySelector('.cancel-dir-btn').textContent   = t('cancelRoute');
 
+    // Multilingual note explaining the direct-line indicator
     const note = {
-        en: 'No road data for this area. Head straight toward the destination marker.',
-        mr: 'या क्षेत्रासाठी रस्त्याची माहिती नाही. गंतव्य मार्करच्या दिशेने थेट जा.',
-        hi: 'इस क्षेत्र के लिए सड़क की जानकारी नहीं है। गंतव्य मार्कर की ओर सीधे जाएं।'
+        en: 'Follow the dashed line toward the destination pin. Footpath data for this area is limited — the line shows the direct direction to your destination.',
+        mr: 'ठिपकेदार रेषेचे अनुसरण करत गंतव्य मार्करकडे जा. या क्षेत्रासाठी पायवाटेची माहिती मर्यादित आहे — रेषा थेट दिशा दाखवते.',
+        hi: 'बिंदीदार रेखा का अनुसरण करते हुए गंतव्य पिन की ओर जाएँ। इस क्षेत्र के फुटपाथ का डेटा सीमित है — रेखा सीधी दिशा दर्शाती है।'
     };
     document.getElementById('drawerSteps').innerHTML = `
         <div style="padding:14px 16px;display:flex;gap:12px;align-items:flex-start;border-bottom:1px solid var(--border2);">
             <span style="font-size:20px;flex-shrink:0;">🟢</span>
-            <div style="font-size:13px;color:var(--t2);line-height:1.5;">${note[currentLang]||note.en}</div>
+            <div>
+                <div style="font-size:13px;font-weight:600;color:var(--t1);margin-bottom:4px;">${t('startWalk')}</div>
+                <div style="font-size:12px;color:var(--t2);line-height:1.6;">${note[currentLang] || note.en}</div>
+            </div>
         </div>
         <div style="padding:14px 16px;display:flex;gap:12px;align-items:center;">
             <span style="font-size:20px;flex-shrink:0;">📍</span>
-            <b style="font-size:13px;">${building.name}</b>
+            <div>
+                <div style="font-size:13px;font-weight:700;color:var(--t1);">${building.name}</div>
+                <div style="font-size:11px;color:#06B6D4;font-family:monospace;">${building.code || ''}</div>
+            </div>
         </div>`;
-
-    document.querySelector('.cancel-dir-btn').textContent = t('cancelRoute');
     startDirectionArrow(building.coordinates);
 }
 
+// ============================================================
+// TURN-BY-TURN ICON MAP  (used for OSRM steps only)
+// ============================================================
 const STEP_ICONS = {
     merge:'↗️', fork:'⑂', roundabout:'🔄', rotary:'🔄',
     'exit roundabout':'↗️', 'end of road':'⬆️',
@@ -1175,45 +1199,170 @@ function stepIcon(type, mod) {
     if (type === 'turn') return STEP_ICONS.turn[mod] || '➡️';
     return STEP_ICONS[type] || (STEP_ICONS.turn[mod] || '➡️');
 }
-function buildDrawerSteps(steps, building) {
-    document.getElementById('drawerSteps').innerHTML = steps.map((s, i) => {
-        const type  = s.maneuver?.type || '';
-        const mod   = s.maneuver?.modifier || '';
-        const icon  = stepIcon(type, mod);
-        const dist  = s.distance > 0 ? (s.distance >= 1000 ? (s.distance/1000).toFixed(1)+' km' : Math.round(s.distance)+'m') : '';
-        const start = type === 'depart';
-        const end   = type === 'arrive';
-        let text = s.name
-            ? (type === 'turn' ? 'Turn ' + mod : capitalize(type)) + ' on <b>' + s.name + '</b>'
-            : capitalize(type || 'Continue');
-        if (start) text = '<b>🟢 ' + t('startWalk') + '</b>';
-        if (end)   text = '<b>📍 ' + t('arrived') + ' ' + building.name + '!</b>';
-        
-        // ✨ UPGRADED: Interactive steps with hover effects
-        return `<div class="step-row ${start?'s-start':''} ${end?'s-end':''}" 
-                     style="cursor:pointer;transition:all 0.2s;"
-                     onmouseover="this.style.background='rgba(0,102,255,0.12)'"
-                     onmouseout="this.style.background='transparent'">
-            <div class="step-n">${start?'▶': end?'🏁': i}</div>
-            <div class="step-ic">${icon}</div>
+
+// Convert OSRM step to our format
+function osrmStepToUnified(s){
+    const type=s.maneuver?.type||'', mod=s.maneuver?.modifier||'';
+    const icon=stepIcon(type,mod);
+    let text = s.name ? (type==='turn'?'Turn '+mod:capitalize(type))+' on <b>'+s.name+'</b>' : capitalize(type||'Continue');
+    return {icon, text, dist:s.distance||0, isStart:type==='depart', isEnd:type==='arrive'};
+}
+
+// Render unified steps into drawer
+function renderAllSteps(roadSteps, campusSteps, building){
+    // Drop OSRM "arrive" if campus continues
+    const road = campusSteps.length ? roadSteps.filter(s=>!s.isEnd) : roadSteps;
+    const all  = [...road, ...campusSteps];
+    const total= all.length;
+
+    document.getElementById('dTurns').textContent = total;
+    document.getElementById('drawerSteps').innerHTML = all.map((s,i)=>{
+        const distTx = s.dist>0 ? (s.dist>=1000?(s.dist/1000).toFixed(1)+'km':Math.round(s.dist)+'m') : '';
+        const isCampusStep = i >= road.length;
+        const leftBar = isCampusStep ? 'border-left:3px solid #10B981;' : 'border-left:3px solid transparent;';
+        return `
+        <div class="step-row ${s.isStart?'s-start':''} ${s.isEnd?'s-end':''}"
+             style="cursor:pointer;transition:background .15s;${leftBar}"
+             onmouseover="this.style.background='rgba(59,130,246,.1)'"
+             onmouseout="this.style.background='transparent'">
+            <div class="step-n">${s.isStart?'▶':s.isEnd?'🏁':i+1}</div>
+            <div class="step-ic">${s.icon}</div>
             <div class="step-tx">
-                <div class="step-main">${text}</div>
-                ${dist ? `<div class="step-d">${dist}</div>` : ''}
-            </div></div>`;
+                <div class="step-main">${s.isEnd&&building?`Arrived at <b>${building.name}</b>! 🎉`:s.text}</div>
+                ${distTx?`<div class="step-d">Walk ${distTx}</div>`:''}
+            </div>
+        </div>`;
     }).join('');
 }
+
+// Called for all OSRM-routed destinations.
+// If a last-mile connector was drawn, we inject a final step so the user
+// knows to leave the road and walk directly to the building entrance.
+function buildDrawerSteps(osrmSteps, building) {
+    const unified = osrmSteps.map(osrmStepToUnified);
+
+    // Check whether we have a meaningful connector gap
+    if (lastMileLayer && lastMileLayer._entryDot) {
+        const latlngs = lastMileLayer.getLatLngs();
+        if (latlngs.length === 2) {
+            const gapM = haversineM(
+                latlngs[0].lat, latlngs[0].lng,
+                latlngs[1].lat, latlngs[1].lng
+            );
+            if (gapM >= 3) {
+                // Drop the generic OSRM "arrive" step and replace with
+                // a precise "final approach" step that mentions the gap distance
+                const withoutArrive = unified.filter(s => !s.isEnd);
+                const gapTx = gapM >= 1000
+                    ? (gapM / 1000).toFixed(1) + ' km'
+                    : Math.round(gapM) + 'm';
+                const finalApproachText = {
+                    en: `Head directly to <b>${building.name}</b> entrance`,
+                    mr: `<b>${building.name}</b> च्या प्रवेशद्वाराकडे थेट जा`,
+                    hi: `<b>${building.name}</b> के प्रवेश की ओर सीधे जाएँ`,
+                };
+                withoutArrive.push({
+                    icon:    '🏁',
+                    text:    finalApproachText[currentLang] || finalApproachText.en,
+                    dist:    gapM,
+                    isEnd:   true,
+                });
+                renderAllSteps(withoutArrive, [], building);
+                return;
+            }
+        }
+    }
+
+    renderAllSteps(unified, [], building);
+}
+
 function clearRoute() {
-    if (routeLayer) { 
-        map.removeLayer(routeLayer.line); 
+    if (routeLayer) {
+        map.removeLayer(routeLayer.line);
         map.removeLayer(routeLayer.dash);
-        if (routeLayer.animation) clearInterval(routeLayer.animation); // Stop animation
-        routeLayer = null; 
+        if (routeLayer.animation) clearInterval(routeLayer.animation);
+        routeLayer = null;
+    }
+    // Remove the last-mile dashed connector and its entry dot whenever
+    // the main route is cleared (cancel, recalculate, or arrival).
+    if (lastMileLayer) {
+        if (lastMileLayer._animInterval) clearInterval(lastMileLayer._animInterval);
+        if (lastMileLayer._entryDot)     map.removeLayer(lastMileLayer._entryDot);
+        map.removeLayer(lastMileLayer);
+        lastMileLayer = null;
     }
     if (destMarker) { map.removeLayer(destMarker); destMarker = null; }
 }
 function showDrawerError() {
     document.getElementById('drawerLoading').style.display = 'none';
     document.getElementById('drawerError').style.display   = 'block';
+}
+
+// ============================================================
+// LAST-MILE CONNECTOR
+// Draws a short dashed line from the final OSRM route point to
+// the exact building marker pin.  OSRM routes only to the nearest
+// mapped road; this segment visually closes the gap for buildings
+// that sit off the road network (campus interiors, courtyards, etc.)
+//
+// Design choices:
+//  • NOT included in routeCoords — arrival detection and route-
+//    trimming use the main polyline only; the connector is purely
+//    decorative and doesn't confuse GPS progress tracking.
+//  • Drawn above the main route (zIndex handled by Leaflet layer order).
+//  • Animated flowing dash (same direction as the main route dash).
+//  • Only drawn when the gap is ≥ 3 m to avoid a zero-length artefact
+//    when OSRM happens to snap perfectly to the building.
+// ============================================================
+function drawLastMileConnector(lastRouteLatLng, buildingCoords) {
+    // Remove any stale connector from a previous route calculation
+    if (lastMileLayer) { map.removeLayer(lastMileLayer); lastMileLayer = null; }
+
+    const destLatLng = [buildingCoords.latitude, buildingCoords.longitude];
+    const gapMetres  = haversineM(
+        lastRouteLatLng[0], lastRouteLatLng[1],
+        destLatLng[0],      destLatLng[1]
+    );
+
+    // Skip if OSRM already reached within 3 m of the pin
+    if (gapMetres < 3) return;
+
+    const connectorCoords = [lastRouteLatLng, destLatLng];
+
+    // Pulsing dashed white line — visually distinct from the solid OSRM route
+    // so the user understands "this is the final approach" not a road segment.
+    lastMileLayer = L.polyline(connectorCoords, {
+        color:     '#FFFFFF',
+        weight:    3,
+        opacity:   0.90,
+        dashArray: '6, 8',
+        dashOffset:'0',
+        lineCap:   'round',
+        lineJoin:  'round',
+    }).addTo(map);
+
+    // Animate the dash offset so it flows toward the pin (same as main route)
+    let dashOff = 0;
+    const anim = setInterval(() => {
+        dashOff--;
+        lastMileLayer.setStyle({ dashOffset: String(dashOff) });
+    }, 50);
+
+    // Attach animation handle to the layer so clearRoute() can stop it
+    lastMileLayer._animInterval = anim;
+
+    // Add a small glowing dot right at the pin entry-point
+    // (confirms exactly where the route ends before the marker)
+    const entryDot = L.circleMarker(destLatLng, {
+        radius:      5,
+        color:       '#FFFFFF',
+        fillColor:   '#00D9FF',
+        fillOpacity: 1,
+        weight:      2,
+    }).addTo(map);
+
+    // Store it on the layer so clearRoute() removes it too
+    lastMileLayer._entryDot = entryDot;
 }
 
 // ============================================================
@@ -1467,35 +1616,71 @@ function getUserLocation(cb, silent) {
             const lat = pos.coords.latitude;
             const lng = pos.coords.longitude;
 
-            userLocation = {
-                latitude: lat,
-                longitude: lng
-            };
+            userLocation = { latitude: lat, longitude: lng };
 
-            if (userMarker) {
-                userMarker.setLatLng([lat, lng]);
-            }
+            if (userMarker) userMarker.setLatLng([lat, lng]);
 
             if (routeLayer) {
-                // ── Arrival detection ─────────────────────────────────────────
+                // ── Arrival detection ──────────────────────────────────────
                 if (currentDest && !arrivedShown) {
                     const distToDest = haversineM(
                         lat, lng,
                         currentDest.coordinates.latitude,
                         currentDest.coordinates.longitude
                     );
-                    if (distToDest < 20) {   // within 20 m = arrived
+                    if (distToDest < 20) {
                         arrivedShown = true;
                         showArrivalScreen(currentDest);
                         return;
                     }
                 }
 
-                // ── Trim passed route segments ────────────────────────────────
+                // ── Off-path detection → automatic recalculation ───────────
+                // Scan the next 50 route points ahead; if the user has drifted
+                // further than OFF_PATH_THRESHOLD metres from all of them,
+                // recalculate a fresh OSRM route from the current position.
+                if (currentDest && !arrivedShown && !recalculationInProgress) {
+                    const searchTo = Math.min(routeCoords.length - 1, passedIndex + 50);
+                    let minDist = Infinity;
+                    for (let i = passedIndex; i <= searchTo; i++) {
+                        const d = haversineM(lat, lng, routeCoords[i][0], routeCoords[i][1]);
+                        if (d < minDist) minDist = d;
+                    }
+                    if (minDist > OFF_PATH_THRESHOLD) {
+                        recalculationInProgress = true;
+                        const recalcMsgs = {
+                            en: '🔄 Recalculating route...',
+                            mr: '🔄 मार्ग पुन्हा मोजत आहे...',
+                            hi: '🔄 रास्ता फिर से खोज रहे हैं...'
+                        };
+                        const recalcBannerMsgs = {
+                            en: 'Recalculating route…',
+                            mr: 'मार्ग पुन्हा मोजत आहे…',
+                            hi: 'रास्ता फिर से खोज रहे हैं…'
+                        };
+                        toast(recalcMsgs[currentLang] || recalcMsgs.en, 'inf');
+                        const bannerEl   = document.getElementById('drawerRecalc');
+                        const bannerText = document.getElementById('drawerRecalcText');
+                        if (bannerEl)   bannerEl.style.display   = 'block';
+                        if (bannerText) bannerText.textContent   = recalcBannerMsgs[currentLang] || recalcBannerMsgs.en;
+                        // Brief delay so the toast is visible before the fetch
+                        setTimeout(async () => {
+                            try {
+                                await drawRoute(userLocation, currentDest.coordinates, currentDest);
+                            } finally {
+                                recalculationInProgress = false;
+                                const b = document.getElementById('drawerRecalc');
+                                if (b) b.style.display = 'none';
+                            }
+                        }, 1200);
+                    }
+                }
+
+                // ── Trim passed route segments ─────────────────────────────
                 if (routeCoords.length > 2) {
-                    let closestIdx = passedIndex;
+                    let closestIdx  = passedIndex;
                     let closestDist = Infinity;
-                    const searchTo = Math.min(routeCoords.length - 1, passedIndex + 30);
+                    const searchTo  = Math.min(routeCoords.length - 1, passedIndex + 30);
                     for (let i = passedIndex; i <= searchTo; i++) {
                         const d = haversineM(lat, lng, routeCoords[i][0], routeCoords[i][1]);
                         if (d < closestDist) { closestDist = d; closestIdx = i; }
@@ -1510,7 +1695,7 @@ function getUserLocation(cb, silent) {
                     }
                 }
 
-                // ── Auto-pan only if follow mode is on ────────────────────────
+                // ── Auto-pan only if follow mode is on ─────────────────────
                 if (autoFollow) {
                     map.panTo([lat, lng], { animate: true, duration: 0.4 });
                 }

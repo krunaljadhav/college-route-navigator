@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>SVPM Path Editor</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;background:#0d1117;color:#e6edf3;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow:hidden;}
+
+/* ─── LAYOUT ─────────────────────────────── */
+#app{display:flex;flex-direction:column;height:100%;}
+#topbar{background:#161b22;border-bottom:1px solid #30363d;padding:10px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0;z-index:500;}
+#topbar h1{font-size:15px;font-weight:700;flex:1;}
+.tag{font-size:11px;color:#8b949e;flex-shrink:0;}
+#body{flex:1;display:flex;overflow:hidden;}
+#map{flex:1;}
+#sidebar{width:300px;flex-shrink:0;background:#161b22;border-left:1px solid #30363d;display:flex;flex-direction:column;overflow:hidden;}
+
+/* ─── BUTTONS ────────────────────────────── */
+.btn{padding:7px 14px;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;transition:opacity .15s;}
+.btn:active{opacity:.7;}
+.btn-green{background:#238636;color:#fff;}
+.btn-blue{background:#1f6feb;color:#fff;}
+.btn-red{background:#da3633;color:#fff;}
+.btn-yellow{background:#9e6a03;color:#fff;}
+.btn-ghost{background:rgba(255,255,255,.06);color:#c9d1d9;border:1px solid #30363d;}
+
+/* ─── WIZARD STEP ────────────────────────── */
+#wizard{padding:14px 16px;border-bottom:1px solid #30363d;flex-shrink:0;}
+.wiz-step{display:none;}
+.wiz-step.active{display:block;}
+.wiz-num{display:inline-block;width:22px;height:22px;border-radius:50%;background:#1f6feb;color:#fff;font-size:11px;font-weight:700;text-align:center;line-height:22px;margin-right:6px;}
+.wiz-title{font-size:13px;font-weight:700;display:inline;}
+.wiz-desc{font-size:12px;color:#8b949e;margin-top:6px;line-height:1.7;}
+.wiz-desc b{color:#e6edf3;}
+.wiz-actions{margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;}
+
+/* ─── BUILDING LIST ──────────────────────── */
+#bldList{flex:1;overflow-y:auto;}
+.bld-row{padding:9px 16px;border-bottom:1px solid #21262d;cursor:pointer;display:flex;align-items:center;gap:10px;transition:background .1s;}
+.bld-row:hover{background:rgba(255,255,255,.04);}
+.bld-row.active{background:rgba(31,111,235,.15);border-left:3px solid #1f6feb;}
+.bld-row.done{border-left:3px solid #238636;}
+.bld-row.skip{opacity:.4;}
+.bld-icon{font-size:18px;flex-shrink:0;}
+.bld-meta{flex:1;min-width:0;}
+.bld-name{font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.bld-pts{font-size:10px;color:#8b949e;margin-top:2px;}
+.bld-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;flex-shrink:0;}
+.badge-done{background:rgba(35,134,54,.25);color:#3fb950;}
+.badge-todo{background:rgba(158,106,3,.2);color:#d29922;}
+.badge-skip{background:rgba(255,255,255,.06);color:#8b949e;}
+
+/* ─── TURN PREVIEW ───────────────────────── */
+#preview{border-top:1px solid #21262d;flex-shrink:0;max-height:200px;overflow-y:auto;}
+#preview h3{font-size:11px;font-weight:700;color:#8b949e;text-transform:uppercase;letter-spacing:.06em;padding:10px 16px 6px;}
+.turn-row{display:flex;gap:10px;align-items:flex-start;padding:5px 16px;border-bottom:1px solid #21262d;font-size:12px;}
+.turn-row:last-child{border:none;}
+.t-ic{font-size:15px;width:20px;text-align:center;flex-shrink:0;margin-top:1px;}
+.t-tx{flex:1;color:#c9d1d9;line-height:1.5;}
+.t-dist{color:#8b949e;font-size:11px;}
+
+/* ─── STATUS BAR ─────────────────────────── */
+#statusbar{padding:10px 16px;font-size:12px;color:#8b949e;border-top:1px solid #21262d;flex-shrink:0;line-height:1.6;}
+#statusbar b{color:#e6edf3;}
+#statusbar.active{color:#e6edf3;background:rgba(31,111,235,.08);}
+
+/* ─── EXPORT ─────────────────────────────── */
+#exportArea{padding:12px 16px;border-top:1px solid #30363d;flex-shrink:0;}
+.progress{background:#21262d;border-radius:4px;height:5px;margin:6px 0;}
+.progress-fill{height:5px;border-radius:4px;background:linear-gradient(90deg,#1f6feb,#238636);transition:width .3s;}
+.prog-label{font-size:11px;color:#8b949e;margin-bottom:4px;}
+
+/* ─── MAP OVERLAY ────────────────────────── */
+#mapHint{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);background:rgba(13,17,23,.92);backdrop-filter:blur(8px);border:1px solid #30363d;border-radius:20px;padding:8px 20px;font-size:12px;color:#c9d1d9;z-index:999;pointer-events:none;white-space:nowrap;}
+#mapTools{position:absolute;top:12px;left:12px;z-index:999;display:flex;flex-direction:column;gap:8px;}
+.map-btn{width:38px;height:38px;background:rgba(22,27,34,.9);backdrop-filter:blur(8px);border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.4);}
+.map-btn:active{transform:scale(.95);}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- TOP BAR -->
+  <div id="topbar">
+    <h1>🗺️ SVPM Campus Path Editor</h1>
+    <span class="tag" id="topTag">Not started</span>
+    <button class="btn btn-yellow" onclick="undoLast()">↩ Undo</button>
+    <button class="btn btn-red"    onclick="clearCurrent()">✕ Clear</button>
+    <button class="btn btn-green"  onclick="saveCurrent()">✓ Save Path</button>
+  </div>
+
+  <div id="body">
+    <!-- MAP -->
+    <div style="position:relative;flex:1;">
+      <div id="map"></div>
+      <div id="mapHint">← Select a building from the right panel</div>
+      <div id="mapTools">
+        <div class="map-btn" onclick="map.setZoom(map.getZoom()+1)">+</div>
+        <div class="map-btn" onclick="map.setZoom(map.getZoom()-1)">−</div>
+        <div class="map-btn" title="Go to Main Gate" onclick="flyToGate()">🚪</div>
+        <div class="map-btn" title="Show all paths" onclick="toggleAllPaths()">👁</div>
+      </div>
+    </div>
+
+    <!-- SIDEBAR -->
+    <div id="sidebar">
+
+      <!-- WIZARD -->
+      <div id="wizard">
+
+        <div class="wiz-step active" id="wiz0">
+          <span class="wiz-num">!</span><span class="wiz-title">How this works</span>
+          <div class="wiz-desc">
+            The app cannot guess campus lanes. <b>You draw them once</b>, then every user gets perfect directions.<br><br>
+            <b>For each building:</b><br>
+            1. Click the building in the list below<br>
+            2. <b>Tap on the map along the actual walking lane</b> — tap at <b>every turn and corner</b><br>
+            3. Click <b style="color:#3fb950">✓ Save Path</b><br>
+            4. When all done → <b style="color:#58a6ff">Export buildings.json</b>
+          </div>
+          <div class="wiz-actions">
+            <button class="btn btn-blue" onclick="document.getElementById('wiz0').classList.remove('active');document.getElementById('wiz1').classList.add('active')">Got it → Start</button>
+          </div>
+        </div>
+
+        <div class="wiz-step" id="wiz1">
+          <span class="wiz-num">→</span><span class="wiz-title" id="activeTitle">Select a building</span>
+          <div class="wiz-desc" id="activeDesc">Click any building from the list below to begin tracing its walking lane from Main Gate.</div>
+          <div class="wiz-actions">
+            <button class="btn btn-ghost" onclick="document.getElementById('wiz0').classList.add('active');document.getElementById('wiz1').classList.remove('active')" style="font-size:11px;">? Help</button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- BUILDING LIST -->
+      <div id="bldList"></div>
+
+      <!-- TURN PREVIEW -->
+      <div id="preview" style="display:none;">
+        <h3>🧭 Live Turn Preview</h3>
+        <div id="turnList"></div>
+      </div>
+
+      <!-- STATUS BAR -->
+      <div id="statusbar">Select a building to start.</div>
+
+      <!-- EXPORT -->
+      <div id="exportArea">
+        <div class="prog-label" id="progLabel">0 / 23 buildings traced</div>
+        <div class="progress"><div class="progress-fill" id="progFill" style="width:0"></div></div>
+        <button class="btn btn-blue" style="width:100%;margin-top:6px;" onclick="doExport()">📥 Export buildings.json</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   DATA  — all 26 buildings
+═══════════════════════════════════════════════════════════ */
+const BLDS = [
+  {id:"main_gate",           name:"Main Gate",                                   icon:"🚪", lat:18.136095, lng:74.501313, gate:true},
+  {id:"main_ground",         name:"Main Ground",                                 icon:"🏟️", lat:18.136468, lng:74.500019},
+  {id:"garden_area",         name:"Garden Area",                                 icon:"🌿", lat:18.137246, lng:74.499853},
+  {id:"auditorium",          name:"Auditorium",                                  icon:"🎭", lat:18.136945, lng:74.498553},
+  {id:"hostel_gate",         name:"Hostel Gate",                                 icon:"🔐", lat:18.136921, lng:74.498305, gate:true},
+  {id:"rajmata_hostel",      name:"Rajmata Jijau Girls Hostel",                  icon:"🏠", lat:18.136613, lng:74.497941},
+  {id:"savitribai_hostel",   name:"Savitribai Phule Girls Hostel",               icon:"🏠", lat:18.136823, lng:74.496937},
+  {id:"ahilyadevi_hostel",   name:"Ahilyadevi Girls Hostel",                     icon:"🏠", lat:18.136615, lng:74.496959},
+  {id:"girls_gym",           name:"Girls Gym Court",                             icon:"🏋️", lat:18.137164, lng:74.497489},
+  {id:"girls_mess",          name:"Girls Mess",                                  icon:"🍽️", lat:18.137118, lng:74.497745},
+  {id:"pharmacy_college",    name:"SVPM College of Pharmacy",                    icon:"💊", lat:18.137413, lng:74.499291},
+  {id:"ground",              name:"Play Ground (near Pharmacy)",                 icon:"⚽", lat:18.137423, lng:74.498755},
+  {id:"diploma_engineering", name:"Diploma College of Engineering",              icon:"🔧", lat:18.138617, lng:74.499209},
+  {id:"workshop",            name:"Workshop",                                    icon:"⚙️", lat:18.138059, lng:74.498362},
+  {id:"canteen",             name:"Canteen",                                     icon:"🍜", lat:18.138667, lng:74.498447},
+  {id:"engineering_college", name:"College of Engineering",                      icon:"🏛️", lat:18.139469, lng:74.498776},
+  {id:"play_ground",         name:"Play Ground (near Boys Hostel)",              icon:"🏃", lat:18.138908, lng:74.498294},
+  {id:"basketball_court",    name:"Basketball Court",                            icon:"🏀", lat:18.139409, lng:74.497905},
+  {id:"boys_hostel",         name:"Boys Hostel",                                 icon:"🏢", lat:18.139063, lng:74.497928},
+  {id:"shree_mess",          name:"Sanskruti Mess",                              icon:"🍛", lat:18.138808, lng:74.497526},
+  {id:"coutegess",           name:"Courtess Area",                               icon:"🏘️", lat:18.138717, lng:74.496915},
+  {id:"electrical_dept",     name:"Electrical Engineering Dept",                 icon:"⚡", lat:18.140426, lng:74.497887},
+  {id:"commerce_science",    name:"Commerce, Science & CS College",              icon:"💻", lat:18.140938, lng:74.497336},
+  {id:"management_gate",     name:"Management Gate",                             icon:"🚧", lat:18.141152, lng:74.497258, gate:true},
+  {id:"xerox_center",        name:"Xerox Center",                                icon:"🖨️", lat:18.138372, lng:74.499640},
+  {id:"parking_area",        name:"Parking Area",                                icon:"🅿️", lat:18.138113, lng:74.499807},
+];
+
+/* ═══════════════════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════════════════ */
+let map, activeId = null;
+let pts = [];              // [[lat,lng], ...]  current path being drawn
+let ptMarkers = [];        // leaflet circle markers
+let activeLine = null, activeDash = null;
+let allPathLayers = {};    // id → {line, dash}  all saved paths on map
+let saved = {};            // id → [[lat,lng],...]
+let showingAll = false;
+
+/* ═══════════════════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════════════════ */
+window.addEventListener('DOMContentLoaded', () => {
+  map = L.map('map', {center:[18.1385,74.4985], zoom:18, zoomControl:false});
+  L.tileLayer('https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+    subdomains:['0','1','2','3'], maxZoom:22, maxNativeZoom:21
+  }).addTo(map);
+  map.on('click', onMapClick);
+
+  // Load persisted
+  try { const d = localStorage.getItem('svpm_paths_v2'); if(d) saved = JSON.parse(d); } catch(e){}
+
+  renderList();
+  addBuildingMarkers();
+  updateProgress();
+});
+
+function flyToGate(){ map.flyTo([18.136095,74.501313], 20, {duration:1.2}); }
+
+function toggleAllPaths(){
+  showingAll = !showingAll;
+  if(showingAll){
+    Object.entries(saved).forEach(([id,pathPts]) => {
+      if(id===activeId||pathPts.length<2) return;
+      if(allPathLayers[id]) return;
+      const l = L.polyline(pathPts, {color:'#238636',weight:3,opacity:.6,dashArray:'6,8'}).addTo(map);
+      allPathLayers[id] = l;
+    });
+  } else {
+    Object.values(allPathLayers).forEach(l => map.removeLayer(l));
+    allPathLayers = {};
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   BUILDING MARKERS + LIST
+═══════════════════════════════════════════════════════════ */
+function addBuildingMarkers(){
+  BLDS.forEach(b => {
+    const icon = L.divIcon({
+      html:`<div style="font-size:22px;filter:drop-shadow(0 2px 8px rgba(0,0,0,.8));cursor:pointer">${b.icon}</div>`,
+      className:'', iconSize:[28,28], iconAnchor:[14,28]
+    });
+    L.marker([b.lat,b.lng],{icon,title:b.name}).addTo(map).on('click',()=>selectBuilding(b.id));
+  });
+}
+
+function renderList(){
+  const nonGates = BLDS.filter(b=>!b.gate);
+  const gates    = BLDS.filter(b=>b.gate);
+
+  document.getElementById('bldList').innerHTML =
+    `<div style="padding:6px 16px;font-size:10px;font-weight:700;color:#8b949e;text-transform:uppercase;letter-spacing:.08em;background:#0d1117;">📍 Buildings (trace paths for these)</div>` +
+    nonGates.map(b => rowHTML(b)).join('') +
+    `<div style="padding:6px 16px;font-size:10px;font-weight:700;color:#8b949e;text-transform:uppercase;letter-spacing:.08em;background:#0d1117;">🚪 Gates (no path needed)</div>` +
+    gates.map(b => rowHTML(b)).join('');
+}
+
+function rowHTML(b){
+  const n   = saved[b.id] ? saved[b.id].length : 0;
+  const done = n > 1;
+  return `<div class="bld-row ${done?'done':''} ${b.gate?'skip':''}" id="row-${b.id}" onclick="selectBuilding('${b.id}')">
+    <div class="bld-icon">${b.icon}</div>
+    <div class="bld-meta">
+      <div class="bld-name">${b.name}</div>
+      <div class="bld-pts">${n>0 ? n+' waypoints' : b.gate ? 'Gate — skip' : 'Not traced yet'}</div>
+    </div>
+    <div class="bld-badge ${done?'badge-done':b.gate?'badge-skip':'badge-todo'}">${done?'✓':b.gate?'—':'…'}</div>
+  </div>`;
+}
+
+function updateProgress(){
+  const total = BLDS.filter(b=>!b.gate).length;
+  const done  = BLDS.filter(b=>!b.gate && saved[b.id] && saved[b.id].length>1).length;
+  document.getElementById('progLabel').textContent = `${done} / ${total} buildings traced`;
+  document.getElementById('progFill').style.width = (done/total*100)+'%';
+  document.getElementById('topTag').textContent = done===total ? '✅ All done!' : `${done}/${total} done`;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SELECT BUILDING
+═══════════════════════════════════════════════════════════ */
+function selectBuilding(id){
+  const b = BLDS.find(x=>x.id===id);
+  if(!b) return;
+  if(b.gate){
+    alert(`${b.name} is a gate — no path needed. Gates are the entry/exit points, not destinations.`);
+    return;
+  }
+  // Auto-save if points exist
+  if(activeId && pts.length > 1 && activeId !== id){
+    if(!confirm(`Save path for current building first?`)) return;
+    saveCurrent();
+  }
+
+  activeId = id;
+  pts = saved[id] ? saved[id].slice() : [];
+  clearPtMarkers();
+  clearActiveLine();
+
+  document.querySelectorAll('.bld-row').forEach(r=>r.classList.remove('active'));
+  const row = document.getElementById('row-'+id);
+  if(row){ row.classList.add('active'); row.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+
+  // Fly to building
+  map.flyTo([b.lat, b.lng], 19, {duration:1.2});
+
+  // Redraw existing points
+  if(pts.length){ pts.forEach((p,i)=>addPtMarker(p,i+1)); redrawLine(); updateTurns(); }
+
+  // Update wizard
+  document.getElementById('activeTitle').textContent = b.name;
+  document.getElementById('activeDesc').innerHTML =
+    `<b>Now tracing:</b> ${b.icon} ${b.name}<br><br>`+
+    `Tap on the map along the <b>actual walking lane</b> starting from <b>🚪 Main Gate</b> all the way to this building.<br>`+
+    `Tap at <b>every single corner and turn</b> in the lane.`;
+  document.getElementById('mapHint').textContent = `👆 Tap along the real lane from Main Gate → ${b.name}`;
+  updateStatus();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MAP CLICK
+═══════════════════════════════════════════════════════════ */
+function onMapClick(e){
+  if(!activeId){
+    document.getElementById('mapHint').textContent = '⚠️ Select a building from the right panel first!';
+    setTimeout(()=>document.getElementById('mapHint').textContent='← Select a building from the right panel',2000);
+    return;
+  }
+  const pt = [e.latlng.lat, e.latlng.lng];
+  pts.push(pt);
+  addPtMarker(pt, pts.length);
+  redrawLine();
+  updateStatus();
+  updateTurns();
+}
+
+function addPtMarker(pt, n){
+  const isFirst = n===1;
+  const color = isFirst ? '#d29922' : '#1f6feb';
+  const ic = L.divIcon({
+    html:`<div style="background:${color};color:#fff;font-size:9px;font-weight:700;
+      width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+      border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.6);">${n}</div>`,
+    className:'', iconSize:[18,18], iconAnchor:[9,9]
+  });
+  ptMarkers.push(L.marker(pt,{icon:ic,interactive:false,zIndexOffset:600}).addTo(map));
+}
+function clearPtMarkers(){ ptMarkers.forEach(m=>map.removeLayer(m)); ptMarkers=[]; }
+function redrawLine(){
+  clearActiveLine();
+  if(pts.length<2) return;
+  activeLine = L.polyline(pts,{color:'#1f6feb',weight:5,opacity:.9,lineCap:'round',lineJoin:'round'}).addTo(map);
+  activeDash  = L.polyline(pts,{color:'#58a6ff',weight:2.5,opacity:.8,dashArray:'7,10',lineCap:'round'}).addTo(map);
+}
+function clearActiveLine(){
+  if(activeLine){map.removeLayer(activeLine);activeLine=null;}
+  if(activeDash){map.removeLayer(activeDash);activeDash=null;}
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CONTROLS
+═══════════════════════════════════════════════════════════ */
+function undoLast(){
+  if(!pts.length) return;
+  pts.pop();
+  clearPtMarkers();
+  if(pts.length) pts.forEach((p,i)=>addPtMarker(p,i+1));
+  redrawLine();
+  updateStatus();
+  updateTurns();
+}
+function clearCurrent(){
+  if(pts.length && !confirm('Clear all points for this building?')) return;
+  pts=[];
+  clearPtMarkers();
+  clearActiveLine();
+  if(activeId){ delete saved[activeId]; persist(); renderList(); updateProgress(); }
+  updateStatus();
+  document.getElementById('preview').style.display='none';
+}
+function saveCurrent(){
+  if(!activeId){ alert('Select a building first.'); return; }
+  if(pts.length<2){ alert('Add at least 2 waypoints along the lane before saving.'); return; }
+  saved[activeId]=pts.slice();
+  persist();
+  renderList();
+  updateProgress();
+  const b=BLDS.find(x=>x.id===activeId);
+  document.getElementById('topTag').textContent=`✅ Saved: ${b?.name}`;
+  setTimeout(updateProgress, 2500);
+}
+function persist(){
+  try{ localStorage.setItem('svpm_paths_v2',JSON.stringify(saved)); }catch(e){}
+}
+function updateStatus(){
+  const el=document.getElementById('statusbar');
+  const b=BLDS.find(x=>x.id===activeId);
+  const n=pts.length;
+  if(!activeId){ el.className='statusbar'; el.textContent='Select a building.'; return; }
+  el.className=n>0?'statusbar active':'statusbar';
+  el.innerHTML = n===0
+    ? `<b>${b?.name}</b> — tap the map along the walking lane, starting from the Main Gate.`
+    : `<b>${b?.name}</b> — ${n} point${n!==1?'s':''} placed.${n>1?' <b>Save Path</b> when done.':''}`;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   TURN PREVIEW  (live as you add points)
+═══════════════════════════════════════════════════════════ */
+function hav(a,b,c,d){
+  const R=6371000,f1=a*Math.PI/180,f2=c*Math.PI/180,df=(c-a)*Math.PI/180,dl=(d-b)*Math.PI/180,
+        x=Math.sin(df/2)**2+Math.cos(f1)*Math.cos(f2)*Math.sin(dl/2)**2;
+  return 2*R*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
+}
+function brg(a,b,c,d){
+  const f1=a*Math.PI/180,f2=c*Math.PI/180,dl=(d-b)*Math.PI/180;
+  return(Math.atan2(Math.sin(dl)*Math.cos(f2),Math.cos(f1)*Math.sin(f2)-Math.sin(f1)*Math.cos(f2)*Math.cos(dl))*180/Math.PI+360)%360;
+}
+function card(b){return['North','NE','East','SE','South','SW','West','NW'][Math.round(b/45)%8];}
+function turnInfo(p,n){
+  let d=n-p; while(d>180)d-=360; while(d<-180)d+=360;
+  if(d>=-15&&d<=15)  return{ic:'⬆️',tx:'Continue straight'};
+  if(d>15&&d<=45)    return{ic:'↗️',tx:'Keep slight right'};
+  if(d>45&&d<=120)   return{ic:'➡️',tx:'Turn right'};
+  if(d>120)          return{ic:'↪️',tx:'Sharp right'};
+  if(d<-15&&d>=-45)  return{ic:'↖️',tx:'Keep slight left'};
+  if(d<-45&&d>=-120) return{ic:'⬅️',tx:'Turn left'};
+  return               {ic:'↩️',tx:'Sharp left'};
+}
+function updateTurns(){
+  const box = document.getElementById('preview');
+  if(pts.length<2){ box.style.display='none'; return; }
+  box.style.display='block';
+  const b=BLDS.find(x=>x.id===activeId);
+  const rows=[];
+  const b0=brg(pts[0][0],pts[0][1],pts[1][0],pts[1][1]);
+  rows.push(`<div class="turn-row"><div class="t-ic">🟢</div><div class="t-tx">Start — walk <b>${card(b0)}</b></div></div>`);
+  let acc=hav(pts[0][0],pts[0][1],pts[1][0],pts[1][1]);
+  for(let i=1;i<pts.length-1;i++){
+    const ib=brg(pts[i-1][0],pts[i-1][1],pts[i][0],pts[i][1]);
+    const ob=brg(pts[i][0],pts[i][1],pts[i+1][0],pts[i+1][1]);
+    const nd=hav(pts[i][0],pts[i][1],pts[i+1][0],pts[i+1][1]);
+    const t=turnInfo(ib,ob);
+    if(t.tx==='Continue straight'){ acc+=nd; }
+    else{
+      rows.push(`<div class="turn-row"><div class="t-ic">${t.ic}</div><div class="t-tx">${t.tx} <span class="t-dist">after ${Math.round(acc)}m</span></div></div>`);
+      acc=nd;
+    }
+  }
+  rows.push(`<div class="turn-row"><div class="t-ic">📍</div><div class="t-tx">Arrive at <b>${b?.name}</b></div></div>`);
+  document.getElementById('turnList').innerHTML=rows.join('');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   EXPORT  —  injects campus_path into full buildings.json
+═══════════════════════════════════════════════════════════ */
+function doExport(){
+  const out = JSON.parse(JSON.stringify(ORIGINAL));
+  let count=0;
+  out.buildings = out.buildings.map(b=>{
+    const p=saved[b.id];
+    if(p&&p.length>1){
+      b.campus_path=p.map(pt=>({latitude:+pt[0].toFixed(7),longitude:+pt[1].toFixed(7)}));
+      count++;
+    } else { delete b.campus_path; }
+    return b;
+  });
+  const blob=new Blob([JSON.stringify(out,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='buildings.json'; a.click();
+  const total=BLDS.filter(x=>!x.gate).length;
+  if(count<total) alert(`Exported! ${count}/${total} buildings have paths traced.\n\nBuildings without paths will show straight lines — go back and trace the remaining ones.`);
+  else alert(`✅ All ${count} buildings exported!\n\nReplace your server's buildings.json with this file.`);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ORIGINAL BUILDINGS.JSON — embedded so export preserves everything
+═══════════════════════════════════════════════════════════ */
+const ORIGINAL = {"buildings":[{"id":"main_gate","name":"Main Gate","code":"GATE","icon":"🚪","description":"Main entrance gate to SVPM campus. Starting point for all campus visits.","coordinates":{"latitude":18.136095,"longitude":74.501313},"floor_count":1,"departments":["Security","Reception"],"facilities":["Security Cabin","Visitor Entry"],"image":"/static/images/main_gate.jpg"},{"id":"main_ground","name":"Main Ground","code":"GRD","icon":"🏟️","description":"Main open ground used for college events, sports activities and gatherings.","coordinates":{"latitude":18.136468,"longitude":74.500019},"floor_count":1,"departments":["Sports"],"facilities":["Open Ground","Event Space"],"image":"/static/images/main_ground.jpg"},{"id":"garden_area","name":"Garden Area","code":"GDN","icon":"🌿","description":"Scenic garden area on campus, great for relaxation and outdoor study sessions.","coordinates":{"latitude":18.137246,"longitude":74.499853},"floor_count":1,"departments":["Campus Grounds"],"facilities":["Seating Area","Green Space","Walking Path"],"image":"/static/images/garden_area.jpg"},{"id":"auditorium","name":"Auditorium","code":"AUD","icon":"🎭","description":"Main auditorium for college events, seminars, cultural programs and convocations.","coordinates":{"latitude":18.136945,"longitude":74.498553},"floor_count":2,"departments":["Events","Cultural Committee"],"facilities":["Stage","Seating","Audio System","Lighting","AC"],"image":"/static/images/auditorium.jpg"},{"id":"hostel_gate","name":"Hostel Gate","code":"HG","icon":"🔐","description":"Entry gate to the hostel area. Security check point for hostel residents.","coordinates":{"latitude":18.136921,"longitude":74.498305},"floor_count":1,"departments":["Hostel Administration"],"facilities":["Security","Entry/Exit Control"],"image":"/static/images/hostel_gate.jpg"},{"id":"rajmata_hostel","name":"Rajmata Jijau Girls Hostel","code":"RJH","icon":"🏠","description":"Girls hostel named after Rajmata Jijau. Residential facility for female students.","coordinates":{"latitude":18.136613,"longitude":74.497941},"floor_count":3,"departments":["Hostel Administration","Warden Office"],"facilities":["Rooms","Common Room","Study Hall","Mess","Laundry"],"image":"/static/images/rajmata_hostel.jpg"},{"id":"savitribai_hostel","name":"Savitribai Phule Girls Hostel","code":"SPH","icon":"🏠","description":"Girls hostel named after Savitribai Phule. Modern residential facility for female students.","coordinates":{"latitude":18.136823,"longitude":74.496937},"floor_count":3,"departments":["Hostel Administration","Warden Office"],"facilities":["Rooms","Common Room","Study Hall","WiFi"],"image":"/static/images/savitribai_hostel.jpg"},{"id":"ahilyadevi_hostel","name":"Ahilyadevi Girls Hostel","code":"AGH","icon":"🏠","description":"Girls hostel named after Ahilyadevi. Comfortable residential facility for female students.","coordinates":{"latitude":18.136615,"longitude":74.496959},"floor_count":3,"departments":["Hostel Administration","Warden Office"],"facilities":["Rooms","Common Room","Study Hall","WiFi"],"image":"/static/images/ahilyadevi_hostel.jpg"},{"id":"girls_gym","name":"Girls Gym Court","code":"GGC","icon":"🏋️","description":"Dedicated gym and sports court facility for female students.","coordinates":{"latitude":18.137164,"longitude":74.497489},"floor_count":1,"departments":["Sports Department"],"facilities":["Gym Equipment","Sports Court","Changing Rooms"],"image":"/static/images/girls_gym.jpg"},{"id":"girls_mess","name":"Chetana & SVPM's Girls Mess","code":"GM","icon":"🍽️","description":"Main dining facility for female students offering breakfast, lunch and dinner.","coordinates":{"latitude":18.137118,"longitude":74.497745},"floor_count":1,"departments":["Mess Administration"],"facilities":["Dining Hall","Kitchen","Seating Area"],"image":"/static/images/girls_mess.jpg"},{"id":"pharmacy_college","name":"SVPM College of Pharmacy","code":"PHARM","icon":"💊","description":"SVPM College of Pharmacy offering undergraduate and postgraduate pharmacy programs.","coordinates":{"latitude":18.137413,"longitude":74.499291},"floor_count":4,"departments":["Pharmaceutics","Pharmacology","Pharmacognosy","Pharmaceutical Chemistry"],"facilities":["Labs","Library","Classrooms","Research Center"],"image":"/static/images/pharmacy_college.jpg"},{"id":"ground","name":"Play Ground Near Pharmacy College","code":"GRD2","icon":"⚽","description":"Sports ground for outdoor games and physical activities.","coordinates":{"latitude":18.137423,"longitude":74.498755},"floor_count":1,"departments":["Sports"],"facilities":["Cricket","Football","Athletics"],"image":"/static/images/ground.jpg"},{"id":"diploma_engineering","name":"Diploma College of Engineering","code":"DCE","icon":"🔧","description":"Diploma Engineering college offering polytechnic programs in various engineering streams.","coordinates":{"latitude":18.138617,"longitude":74.499209},"floor_count":3,"departments":["Civil Engineering","Mechanical Engineering","Electronics","Computer Engineering"],"facilities":["Labs","Classrooms","Drawing Hall","Library"],"image":"/static/images/diploma_engineering.jpg"},{"id":"workshop","name":"Workshop","code":"WS","icon":"⚙️","description":"Engineering workshop for practical training in mechanical, electrical and fabrication work.","coordinates":{"latitude":18.138059,"longitude":74.498362},"floor_count":1,"departments":["Mechanical Engineering","Workshop Department"],"facilities":["Lathe Machines","Welding Area","Fitting Section","Carpentry"],"image":"/static/images/workshop.jpg"},{"id":"canteen","name":"Canteen","code":"CAN","icon":"🍜","description":"Main college canteen serving food and beverages for all students and staff.","coordinates":{"latitude":18.138667,"longitude":74.498447},"floor_count":1,"departments":["Canteen Services"],"facilities":["Food Counter","Seating","Snacks","Beverages"],"image":"/static/images/canteen.jpg"},{"id":"engineering_college","name":"College of Engineering","code":"COE","icon":"🏛️","description":"SVPM College of Engineering - main engineering building with state-of-the-art labs and classrooms.","coordinates":{"latitude":18.139469,"longitude":74.498776},"floor_count":5,"departments":["Computer Engineering","IT","Mechanical","Civil","Electronics & Telecom"],"facilities":["Computer Labs","Smart Classrooms","Seminar Hall","Project Lab","Library"],"image":"/static/images/engineering_college.jpg"},{"id":"play_ground","name":"Play Ground Near Boys Hostel","code":"PG","icon":"🏃","description":"Large outdoor play ground for cricket, football and other sports activities.","coordinates":{"latitude":18.138908,"longitude":74.498294},"floor_count":1,"departments":["Sports Department"],"facilities":["Cricket Pitch","Football Field","Running Track"],"image":"/static/images/play_ground.jpg"},{"id":"basketball_court","name":"Basketball Court","code":"BBC","icon":"🏀","description":"Outdoor basketball court for students to practice and compete.","coordinates":{"latitude":18.139409,"longitude":74.497905},"floor_count":1,"departments":["Sports Department"],"facilities":["Basketball Hoops","Marked Court","Spectator Area"],"image":"/static/images/basketball_court.jpg"},{"id":"boys_hostel","name":"Boys Hostel","code":"BH","icon":"🏢","description":"Residential hostel facility for male students with all basic amenities.","coordinates":{"latitude":18.139063,"longitude":74.497928},"floor_count":4,"departments":["Hostel Administration","Warden Office"],"facilities":["Rooms","Common Room","Study Hall","WiFi","Laundry"],"image":"/static/images/boys_hostel.jpg"},{"id":"shree_mess","name":"Sanskruti Mess","code":"SM","icon":"🍛","description":"Shree Mess serving home-style meals to students. Breakfast, lunch and dinner available.","coordinates":{"latitude":18.138808,"longitude":74.497526},"floor_count":1,"departments":["Mess Administration"],"facilities":["Dining Hall","Kitchen","Thali Service"],"image":"/static/images/shree_mess.jpg"},{"id":"coutegess","name":"Courtess Area","code":"CTG","icon":"🏘️","description":"Cottages area on campus providing accommodation and facilities.","coordinates":{"latitude":18.138717,"longitude":74.496915},"floor_count":1,"departments":["Campus Housing"],"facilities":["Accommodation","Common Area"],"image":"/static/images/coutegess.jpg"},{"id":"electrical_dept","name":"Electrical Engineering Department SVPM","code":"EED","icon":"⚡","description":"Dedicated Electrical Engineering department building with specialized labs and classrooms.","coordinates":{"latitude":18.140426,"longitude":74.497887},"floor_count":3,"departments":["Electrical Engineering","Power Systems","Control Systems"],"facilities":["Electrical Labs","Power Lab","Simulation Lab","Smart Classrooms"],"image":"/static/images/electrical_dept.jpg"},{"id":"commerce_science","name":"SVPM's College of Commerce, Science & Computer Engineering","code":"CSCE","icon":"💻","description":"College offering programs in Commerce, Science and Computer Engineering streams.","coordinates":{"latitude":18.140938,"longitude":74.497336},"floor_count":4,"departments":["Commerce","Computer Science","Science","BCA","BBA"],"facilities":["Computer Labs","Science Labs","Library","Classrooms","Seminar Hall"],"image":"/static/images/commerce_science.jpg"},{"id":"management_gate","name":"Management Gate","code":"MG","icon":"🚧","description":"Management block entrance gate. Access to management and administrative offices.","coordinates":{"latitude":18.141152,"longitude":74.497258},"floor_count":1,"departments":["Administration","Management"],"facilities":["Security","Parking","Office Entry"],"image":"/static/images/management_gate.jpg"},{"id":"xerox_center","name":"Xerox Center","code":"XRX","icon":"🖨️","description":"Xerox and printing center for students to print notes, assignments and documents.","coordinates":{"latitude":18.138372,"longitude":74.499640},"floor_count":1,"departments":["Student Services"],"facilities":["Printing","Photocopying","Binding","Scanning"],"image":"/static/images/xerox_center.jpg"},{"id":"parking_area","name":"Parking Area","code":"PARK","icon":"🅿️","description":"Main parking area for students, staff and visitors vehicles.","coordinates":{"latitude":18.138113,"longitude":74.499807},"floor_count":1,"departments":["Campus Services"],"facilities":["Two-Wheeler Parking","Four-Wheeler Parking","Security"],"image":"/static/images/parking_area.jpg"}]};
+</script>
+</body>
+</html>
