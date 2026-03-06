@@ -1002,14 +1002,20 @@ async function drawRoute(from, to, building) {
     
     destMarker = L.marker([to.latitude, to.longitude], { icon: dicon, zIndexOffset: 900 }).addTo(map);
 
-    // Fix 1: Use radiuses to snap to walkable paths on campus (50m snap radius)
-    // continue_straight=false lets OSRM turn immediately instead of going around
-    const url = `${OSRM}${from.longitude},${from.latitude};${to.longitude},${to.latitude}?overview=full&geometries=geojson&steps=true&continue_straight=false&radiuses=50;50`;
+    // Try OSRM with increasing snap radii until a route is found
+    // Small radius first (campus paths), then wider to catch nearby roads
+    const snapRadii = ['50;50', '200;200', '500;500', 'unlimited;unlimited'];
+    let data = null;
+    for (const r of snapRadii) {
+        try {
+            const url = `${OSRM}${from.longitude},${from.latitude};${to.longitude},${to.latitude}?overview=full&geometries=geojson&steps=true&continue_straight=false&radiuses=${r}`;
+            const res = await fetch(url);
+            const d   = await res.json();
+            if (d.code === 'Ok' && d.routes?.length) { data = d; break; }
+        } catch (_) { /* try next radius */ }
+    }
     try {
-        const res  = await fetch(url);
-        const data = await res.json();
-        if (data.code !== 'Ok' || !data.routes?.length) { showDrawerError(); return; }
-
+        if (!data) { drawStraightLineRoute(from, to, building); return; }
         const route = data.routes[0];
         const legs  = route.legs[0];
         const coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
@@ -1084,11 +1090,83 @@ async function drawRoute(from, to, building) {
 
         buildDrawerSteps(legs.steps, building);
 
-    } catch (e) { console.error(e); showDrawerError(); }
+    } catch (e) { console.error(e); drawStraightLineRoute(from, to, building); }
+}
+
+// Fallback when OSRM can't find a walking path — draw a straight dashed line
+function drawStraightLineRoute(from, to, building) {
+    const coords = [
+        [from.latitude, from.longitude],
+        [to.latitude,   to.longitude]
+    ];
+
+    const line = L.polyline(coords, {
+        color: '#3B82F6', weight: 4, opacity: 0.7,
+        dashArray: '12, 10', lineCap: 'round'
+    }).addTo(map);
+
+    const dash = L.polyline(coords, {
+        color: '#00D9FF', weight: 2, opacity: 0.6,
+        dashArray: '8, 14', dashOffset: '0', lineCap: 'round'
+    }).addTo(map);
+
+    let dashOffset = 0;
+    const animation = setInterval(() => { dashOffset -= 1; dash.setStyle({ dashOffset }); }, 50);
+
+    routeLayer   = { line, dash, animation };
+    routeCoords  = coords.slice();
+    passedIndex  = 0;
+    autoFollow   = true;
+    currentDest  = building;
+    arrivedShown = false;
+
+    map.fitBounds(L.latLngBounds(coords), {
+        paddingTopLeft: [60,110], paddingBottomRight: [60,246],
+        maxZoom: 18, animate: true, duration: 1.0
+    });
+
+    const dist   = haversineM(from.latitude, from.longitude, to.latitude, to.longitude);
+    const distTx = dist >= 1000 ? (dist/1000).toFixed(1)+' km' : Math.round(dist)+'m';
+    const mins   = Math.ceil(dist / 80);
+    const timeTx = mins < 60 ? mins+' min' : Math.floor(mins/60)+'h '+(mins%60)+'m';
+
+    document.getElementById('dDist').textContent  = distTx;
+    document.getElementById('dTime').textContent  = timeTx;
+    document.getElementById('dTurns').textContent = '—';
+    document.getElementById('miniDist').textContent = distTx;
+    document.getElementById('miniTime').textContent = timeTx;
+    document.getElementById('drawerSummary').style.display = 'flex';
+    document.getElementById('drawerLoading').style.display = 'none';
+    document.getElementById('drawerError').style.display   = 'none';
+    document.getElementById('drawerFooter').style.display  = 'block';
+    document.getElementById('drawerHint').style.display    = 'block';
+    document.getElementById('drawerHint').textContent      = t('swipeUp');
+
+    const lbls = document.querySelectorAll('.dsm-lbl');
+    if (lbls[0]) lbls[0].textContent = t('distance');
+    if (lbls[1]) lbls[1].textContent = t('walkTime');
+    if (lbls[2]) lbls[2].textContent = t('turns');
+
+    const note = {
+        en: 'No road data for this area. Head straight toward the destination marker.',
+        mr: 'या क्षेत्रासाठी रस्त्याची माहिती नाही. गंतव्य मार्करच्या दिशेने थेट जा.',
+        hi: 'इस क्षेत्र के लिए सड़क की जानकारी नहीं है। गंतव्य मार्कर की ओर सीधे जाएं।'
+    };
+    document.getElementById('drawerSteps').innerHTML = `
+        <div style="padding:14px 16px;display:flex;gap:12px;align-items:flex-start;border-bottom:1px solid var(--border2);">
+            <span style="font-size:20px;flex-shrink:0;">🟢</span>
+            <div style="font-size:13px;color:var(--t2);line-height:1.5;">${note[currentLang]||note.en}</div>
+        </div>
+        <div style="padding:14px 16px;display:flex;gap:12px;align-items:center;">
+            <span style="font-size:20px;flex-shrink:0;">📍</span>
+            <b style="font-size:13px;">${building.name}</b>
+        </div>`;
+
+    document.querySelector('.cancel-dir-btn').textContent = t('cancelRoute');
+    startDirectionArrow(building.coordinates);
 }
 
 const STEP_ICONS = {
-    depart:'🟢', arrive:'📍', continue:'⬆️', 'new name':'➡️',
     merge:'↗️', fork:'⑂', roundabout:'🔄', rotary:'🔄',
     'exit roundabout':'↗️', 'end of road':'⬆️',
     turn: { left:'⬅️', right:'➡️', 'slight left':'↖️', 'slight right':'↗️', 'sharp left':'↩️', 'sharp right':'↪️', straight:'⬆️', uturn:'🔃' }
